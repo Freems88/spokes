@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CAMPAIGN, DEFAULT_PARAMS as P, DEFAULT_SCENARIO as S } from '../src/config';
+import { CAMPAIGN } from '../src/config';
+import { P, S } from './fixture';
 import { removeSpoke, updateSpoke, updateStop } from '../src/model/edit';
 import { computePlan, formatClock } from '../src/model/model';
 import { findHtml, heroHtml, mapSteps, whyHtml } from '../src/story';
@@ -22,6 +23,12 @@ describe('page copy', () => {
     expect(CAMPAIGN.cause).toBe(''); // placeholders stay empty until filled in
   });
 
+  it('find your spoke gives a meet-up time before each roll-out', () => {
+    const f = findHtml(plan, areas, color);
+    for (const sp of plan.spokes) expect(f).toContain(formatClock(sp.startS - P.meetBeforeStartMin * 60));
+    expect(f).toContain('meet here');
+  });
+
   it('find your spoke lists every stop with its time', () => {
     const f = findHtml(plan, areas, color);
     for (const sp of plan.spokes) {
@@ -32,10 +39,10 @@ describe('page copy', () => {
     expect(f).toContain(formatClock(plan.terminal.departS));
   });
 
-  it('story steps name the areas the starts fall in, and follow the plan', () => {
+  it('story steps name the starting points and follow the plan', () => {
     const steps = mapSteps(plan, areas);
     expect(steps.map((s) => s.id)).toEqual(['city', 'grow', 'short', 'merge', 'final', 'arrive']);
-    expect(steps[0]!.html).toContain('Westside and Eastside');
+    expect(steps[0]!.html).toContain('Kipling &amp; Bloor, Warden &amp; Danforth and Yonge &amp; Sheppard');
     const smaller = computePlan(removeSpoke(removeSpoke(S, 'east'), 'north'), P);
     expect(mapSteps(smaller, areas)[0]!.html).toContain('a small group rolls');
   });

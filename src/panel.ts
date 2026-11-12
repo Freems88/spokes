@@ -65,6 +65,8 @@ export function renderPanel(
     ['Space per rider (default age mix)', `${crowdMetresPerRider(mix, p).toFixed(2)} m`],
     ['Regroup at each pickup', `${p.regroupMin} min`],
     ['Hold at merge after last arrival', `${p.mergeHoldMin} min`],
+    ['Schedule cushion on riding time', `${p.slackPct}%`],
+    ['Meet before roll-out at starts', `${p.meetBeforeStartMin} min`],
     ['Marshals', `1 per ${p.ridersPerMarshal.low}–${p.ridersPerMarshal.high} riders`],
     ...AGE_GROUPS.map((g): [string, string] => {
       const a = p.ages[g];

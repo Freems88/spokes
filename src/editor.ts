@@ -33,6 +33,8 @@ const SETTINGS: [string, string, string, number, number, number, number?][] = [
   ['rowSpacingM', 'Row spacing', 'm', 1, 6, 0.1],
   ['regroupMin', 'Regroup at each pickup', 'min', 0, 30, 1],
   ['mergeHoldMin', 'Hold at merge after last arrival', 'min', 0, 60, 1],
+  ['slackPct', 'Schedule cushion on riding time', '%', 0, 100, 5],
+  ['meetBeforeStartMin', 'Meet before roll-out at starts', 'min', 0, 60, 5],
   ['ridersPerMarshal.low', 'Marshals: 1 per (busiest)', 'riders', 5, 100, 1],
   ['ridersPerMarshal.high', 'Marshals: 1 per (lightest)', 'riders', 5, 100, 1],
   ['paceSetShare', 'An age group sets the pace at', '% of a column', 0, 100, 1, 100],

@@ -127,6 +127,7 @@ function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags
   const path = spokePath(spoke, sc.merge.lngLat);
   const total = lengthM(path);
   const regroupS = p.regroupMin * 60;
+  const slack = 1 + Math.max(0, p.slackPct) / 100;
 
   // Place stops along the route, in order.
   const placed: { stop: Stop; kind: StopTiming['kind']; alongM: number; offRouteM: number }[] = [];
@@ -182,9 +183,9 @@ function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags
     legs.push({
       fromId: cur.stop.id, toId: next.stop.id, fromM: cur.alongM, toM: next.alongM, distanceM: dist,
       riders, crowd: { ...crowd }, paceKmh: pace.kmh, paceSetBy: pace.setBy, lengthM: len, blockageS: len / v,
-      signals: sig.signals, signalsEstimated: sig.estimated, departS: depart, arriveS: depart + dist / v,
+      signals: sig.signals, signalsEstimated: sig.estimated, departS: depart, arriveS: depart + (dist / v) * slack,
     });
-    t = depart + dist / v;
+    t = depart + (dist / v) * slack;
   }
 
   const durationS = t;
@@ -287,10 +288,12 @@ export function computePlan(sc: Scenario, p: Params): Plan {
   const len = crowdLengthM(crowd, p);
   const tSig = countSignals(0, tDist, sc.terminalSignalsAlongM, p);
   const block = len / v;
+  /** Riding time = distance ÷ speed, plus the schedule cushion. */
+  const tTravel = (tDist / v) * (1 + Math.max(0, p.slackPct) / 100);
   const terminal: TerminalPlan = {
     riders, crowd, paceKmh: pace.kmh, paceSetBy: pace.setBy, joinAtMerge: crowdSize(joinCrowd), lengthM: len, blockageS: block, distanceM: tDist,
-    departS, headArriveS: departS + tDist / v, tailArriveS: departS + tDist / v + len / v,
-    durationS: tDist / v, signals: tSig.signals, signalsEstimated: tSig.estimated,
+    departS, headArriveS: departS + tTravel, tailArriveS: departS + tTravel + len / v,
+    durationS: tTravel, signals: tSig.signals, signalsEstimated: tSig.estimated,
     totalHoldS: tSig.signals * block, marshals: crowdMarshals(crowd, p), path: tPath,
   };
   if (len > th.maxColumnM || block > th.maxBlockageS) {

@@ -26,7 +26,7 @@ export const CAMPAIGN = {
 
 export const DEFAULT_PARAMS: Params = {
   /** The pace the lead sets. Mass rides with mixed abilities often go 10–13 km/h. */
-  cruiseKmh: 13,
+  cruiseKmh: 12,
   /**
    * Age groups. A group slows the column to its pace once it makes up at
    * least `paceSetShare` of the riders; it never speeds the column up past
@@ -46,9 +46,13 @@ export const DEFAULT_PARAMS: Params = {
   /** Front wheel to front wheel between rows. */
   rowSpacingM: 2.5,
   /** Stop at each pickup so the new riders can join and the column can close up. */
-  regroupMin: 3,
+  regroupMin: 5,
+  /** Extra riding time on every leg for the unexpected: a slow light, a flat, a wrong turn. */
+  slackPct: 10,
+  /** Riders are asked to arrive this long before a spoke rolls out. */
+  meetBeforeStartMin: 15,
   /** The final ride leaves this long after the last rider of the last spoke arrives at the merge point. */
-  mergeHoldMin: 5,
+  mergeHoldMin: 15,
   /** Marshals needed: 1 per 20–25 riders (shown as a range). */
   ridersPerMarshal: { low: 20, high: 25 },
   /**
@@ -84,9 +88,11 @@ export const DEFAULT_PARAMS: Params = {
  *
  * Pickup rider counts are split so each spoke hits the stated total.
  */
-const I = {
+export const INTERSECTIONS = {
   // West: Bloor St W
   bloorKipling: [-79.53536, 43.64179], // PX 1321
+  // Tom Riley Park: on Bloor at the park's frontage, east of Islington (park outline: OpenStreetMap).
+  tomRiley: [-79.5195, 43.64553],
   bloorIslington: [-79.52344, 43.64465], // PX 0339
   bloorRoyalYork: [-79.51136, 43.64736], // PX 0338
   bloorJane: [-79.48448, 43.64933], // PX 0333
@@ -135,6 +141,7 @@ const I = {
   queenYork: [-79.38496, 43.65122], // PX 1691
   nps: [-79.38334, 43.65156], // Queen St W in front of the square, between York and Bay
 } satisfies Record<string, LngLat>;
+const I = INTERSECTIONS;
 
 export const DEFAULT_SCENARIO: Scenario = {
   name: 'Default: three spokes to City Hall',
@@ -145,16 +152,16 @@ export const DEFAULT_SCENARIO: Scenario = {
     {
       id: 'west',
       name: 'West',
-      area: 'Etobicoke',
+      area: 'Etobicoke & Bloor West',
       arrivalOffsetMin: 0,
-      start: { id: 'w0', name: 'Kipling & Bloor', lngLat: I.bloorKipling, riders: 40 },
+      start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 40 },
       pickups: [
         { id: 'w1', name: 'Runnymede', lngLat: I.bloorRunnymede, riders: 70 },
         { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 90 },
         { id: 'w3', name: 'Dufferin', lngLat: I.bloorDufferin, riders: 100 },
       ],
       path: [
-        I.bloorKipling, I.bloorIslington, I.bloorRoyalYork, I.bloorJane, I.bloorRunnymede, I.bloorHighPark,
+        I.tomRiley, I.bloorRoyalYork, I.bloorJane, I.bloorRunnymede, I.bloorHighPark,
         I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.bloorOssington, I.bloorBathurst,
         I.bloorSpadina, I.bloorStGeorge, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
@@ -162,16 +169,15 @@ export const DEFAULT_SCENARIO: Scenario = {
     {
       id: 'east',
       name: 'East',
-      area: 'Scarborough',
+      area: 'The Danforth',
       arrivalOffsetMin: -4,
-      start: { id: 'e0', name: 'Warden & Danforth', lngLat: I.danforthWarden, riders: 35 },
+      start: { id: 'e1', name: 'Main', lngLat: I.danforthMain, riders: 95 },
       pickups: [
-        { id: 'e1', name: 'Main', lngLat: I.danforthMain, riders: 60 },
         { id: 'e2', name: 'Woodbine', lngLat: I.danforthWoodbine, riders: 70 },
         { id: 'e3', name: 'Pape', lngLat: I.danforthPape, riders: 85 },
       ],
       path: [
-        I.danforthWarden, I.danforthDanforthRd, I.danforthVicPark, I.danforthMain, I.danforthWoodbine,
+        I.danforthMain, I.danforthWoodbine,
         I.danforthCoxwell, I.danforthDonlands, I.danforthPape, I.danforthChester, I.danforthBroadview,
         I.bloorCastleFrank, I.bloorSherbourne, I.bloorBay, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
@@ -179,16 +185,15 @@ export const DEFAULT_SCENARIO: Scenario = {
     {
       id: 'north',
       name: 'North',
-      area: 'North York',
+      area: 'Midtown',
       arrivalOffsetMin: -8,
-      start: { id: 'n0', name: 'Yonge & Sheppard', lngLat: I.yongeSheppard, riders: 50 },
+      start: { id: 'n1', name: 'Eglinton', lngLat: I.yongeEglinton, riders: 110 },
       pickups: [
-        { id: 'n1', name: 'Eglinton', lngLat: I.yongeEglinton, riders: 60 },
         { id: 'n2', name: 'St Clair', lngLat: I.yongeStClair, riders: 65 },
       ],
       // Leaves Yonge at St Clair so it doesn't share Bloor with the East spoke.
       path: [
-        I.yongeSheppard, I.yongeYorkMills, I.yongeLawrence, I.yongeEglinton, I.yongeDavisville, I.yongeStClair,
+        I.yongeEglinton, I.yongeDavisville, I.yongeStClair,
         I.avenueStClair, I.avenueDupont, I.avenueDavenport, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },

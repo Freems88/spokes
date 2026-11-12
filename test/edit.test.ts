@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PARAMS as P, DEFAULT_SCENARIO as S } from '../src/config';
+import { P, S } from './fixture';
 import {
   addPickup, addSpoke, MAX_SPOKES, moveStop, removePickup, removeSpoke, startAtPickup, updateStop,
 } from '../src/model/edit';

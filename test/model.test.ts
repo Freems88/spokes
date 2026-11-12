@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PARAMS as P, DEFAULT_SCENARIO as S } from '../src/config';
+import { P, S } from './fixture';
 import { haversineM, lengthM, project, slice } from '../src/model/geo';
 import {
   blockageS, columnLengthM, comfortMaxRiders, computePlan, crowdLengthM, crowdMarshals, crowdMetresPerRider,
@@ -184,6 +184,15 @@ describe('plan', () => {
     const w = sc.spokes[0]!;
     [w.pickups[0], w.pickups[2]] = [w.pickups[2]!, w.pickups[0]!];
     expect(computePlan(sc, P).flags.some((f) => f.code === 'stop-order' && f.scope === 'west')).toBe(true);
+  });
+
+  it('the schedule cushion stretches riding time, not stops', () => {
+    const plain = computePlan(S, P).spokes[0]!;
+    const padded = computePlan(S, { ...P, slackPct: 10 }).spokes[0]!;
+    const ride = (sp: typeof plain) => sp.legs.reduce((a, l) => a + (l.arriveS - l.departS), 0);
+    expect(ride(padded)).toBeCloseTo(ride(plain) * 1.1, 3);
+    expect(padded.durationS - ride(padded)).toBeCloseTo(plain.durationS - ride(plain), 3); // same regroups
+    expect(padded.maxBlockageS).toBeCloseTo(plain.maxBlockageS, 6); // corner holds use the real pace
   });
 
   it('is deterministic', () => {

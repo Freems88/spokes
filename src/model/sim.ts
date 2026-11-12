@@ -71,8 +71,10 @@ function spokeRuns(plan: Plan): Run[] {
     return {
       id: sp.id, path: sp.path, cum,
       startM: first.alongM, endM: cum.at(-1)!, startS: sp.startS,
+      // Scheduled speed (includes the cushion), so heads reach each stop on time.
       motions: sp.legs.map((l) => ({
-        fromM: l.fromM, toM: l.toM, departS: l.departS, arriveS: l.arriveS, v: l.paceKmh / 3.6,
+        fromM: l.fromM, toM: l.toM, departS: l.departS, arriveS: l.arriveS,
+        v: l.arriveS > l.departS ? (l.toM - l.fromM) / (l.arriveS - l.departS) : l.paceKmh / 3.6,
       })),
       dwells: sp.stops.slice(1, -1).map((st, i) => {
         const before = sp.stops[i]!;
@@ -95,7 +97,10 @@ function terminalRun(plan: Plan): Run {
   const v = t.paceKmh / 3.6;
   return {
     id: 'terminal', path: t.path, cum, startM: 0, endM: cum.at(-1)!, startS: t.departS,
-    motions: [{ fromM: 0, toM: cum.at(-1)!, departS: t.departS, arriveS: t.headArriveS, v }],
+    motions: [{
+      fromM: 0, toM: cum.at(-1)!, departS: t.departS, arriveS: t.headArriveS,
+      v: t.headArriveS > t.departS ? cum.at(-1)! / (t.headArriveS - t.departS) : v,
+    }],
     dwells: [], startRiders: t.riders, startLen: t.lengthM, peakRiders: t.riders, peakLen: t.lengthM,
     endHeadS: t.headArriveS, vLast: v,
   };

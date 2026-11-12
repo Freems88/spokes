@@ -6,7 +6,7 @@
  */
 import { CAMPAIGN } from './config';
 import { esc } from './editor';
-import { areaAt, type Area } from './model/geo';
+import type { Area } from './model/geo';
 import { comfortMaxRiders, crowdLengthM, crowdMetresPerRider, formatClock as hm, stopCrowd } from './model/model';
 import type { LngLat, Params, Plan } from './model/types';
 
@@ -45,8 +45,6 @@ export function keyNumbers(plan: Plan) {
   };
 }
 
-const spokeAreas = (plan: Plan, areas: Area[] | null) =>
-  plan.scenario.spokes.map((s) => (areas ? areaAt(s.start.lngLat, areas) : null) ?? s.area ?? null);
 
 // ── Hero ────────────────────────────────────────────────────────────────
 
@@ -80,14 +78,14 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
   const sc = plan.scenario;
   const t = plan.terminal;
   const all = boundsOf([...plan.spokes.flatMap((s) => s.path), ...t.path]);
-  const covered = [...new Set(spokeAreas(plan, areas).filter((a): a is string => !!a))];
+  const startNames = plan.spokes.map((s) => s.stops[0]!.stop.name);
   const firstStart = Math.min(...plan.spokes.map((s) => s.startS));
   const steps: MapStep[] = [];
 
   steps.push({
     id: 'city', heading: 'It starts small',
     html: `<p>Just after ${hm(firstStart)}, ${plan.spokes.length === 1 ? 'a small group rolls' : `${plan.spokes.length} small groups roll`} out
-      ${covered.length ? `from ${esc(list(covered))}` : 'from the edges of the city'}. Each one starts close to where its riders live.</p>`,
+      from ${esc(list(startNames))}. Each one starts close to where its riders live.</p>`,
     view: { bounds: all }, at: firstStart + 60, showAreas: true,
   });
 
@@ -147,17 +145,21 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
 export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string) => string): string {
   const sc = plan.scenario;
   const t = plan.terminal;
-  const area = spokeAreas(plan, areas);
+  const p = plan.params;
+  void areas;
   const cards = plan.spokes.map((s, i) => `
     <article class="spoke" data-spoke="${esc(s.id)}">
       <header><span class="sw" style="background:${colorOf(s.id)}"></span>
-        <h3>${esc(s.name)}</h3>${area[i] ? `<span class="area">from ${esc(area[i]!)}</span>` : ''}
+        <h3>${esc(s.name)}</h3>${sc.spokes[i]?.area ? `<span class="area">${esc(sc.spokes[i]!.area!)}</span>` : ''}
         <button type="button" class="mini" data-show-spoke="${esc(s.id)}">Show on map</button></header>
       <ol class="times">
-        ${s.stops.slice(0, -1).map((st) => `
-          <li><span class="tm">${hm(st.kind === 'start' ? st.departS : st.arriveS)}</span>
+        ${s.stops.slice(0, -1).map((st) => st.kind === 'start' ? `
+          <li><span class="tm">${hm(st.departS - p.meetBeforeStartMin * 60)}</span>
             <span class="pl">${esc(st.stop.name)}</span>
-            <span class="what">${st.kind === 'start' ? 'rolls out' : `ride passes, leaves ${hm(st.departS)}`}</span></li>`).join('')}
+            <span class="what">meet here · rolls out ${hm(st.departS)}</span></li>` : `
+          <li><span class="tm">${hm(st.arriveS)}</span>
+            <span class="pl">${esc(st.stop.name)}</span>
+            <span class="what">ride arrives · leaves ${hm(st.departS)}</span></li>`).join('')}
         <li><span class="tm">${hm(s.headArriveMergeS)}</span><span class="pl">${esc(sc.merge.name)}</span><span class="what">arrives</span></li>
       </ol>
     </article>`).join('');
@@ -165,7 +167,7 @@ export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string)
     <article class="spoke">
       <header><span class="sw" style="background:${colorOf('terminal')}"></span><h3>Downtown</h3></header>
       <ol class="times">
-        <li><span class="tm">${hm(Math.min(...plan.spokes.map((s) => s.headArriveMergeS)) - 10 * 60)}</span>
+        <li><span class="tm">${hm(t.departS - (p.mergeHoldMin + 5) * 60)}</span>
           <span class="pl">${esc(sc.merge.name)}</span><span class="what">meet here</span></li>
         <li><span class="tm">${hm(t.departS)}</span><span class="pl">${esc(sc.merge.name)}</span><span class="what">everyone leaves together</span></li>
         <li><span class="tm">${hm(t.headArriveS)}</span><span class="pl">${esc(sc.destination.name)}</span><span class="what">arrive</span></li>
@@ -173,8 +175,8 @@ export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string)
     </article>` : '';
   return `
     <h2>Find your spoke</h2>
-    <p>Join at the start or at any stop along the way. Times are worked back from our arrival at ${esc(sc.merge.name)},
-      so come a few minutes early: the ride waits ${plan.params.regroupMin} minutes at each stop, then rolls on.</p>
+    <p>Join at the start or at any stop along the way. The ride waits ${p.regroupMin} minutes at each stop, then rolls on.
+      Times are estimates with some slack built in, so come a few minutes early.</p>
     <div class="spokes">${cards}${downtown}</div>`;
 }
 

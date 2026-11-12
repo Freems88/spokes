@@ -68,6 +68,10 @@ export interface Params {
   ridersPerRow: number;
   rowSpacingM: number;
   regroupMin: number;
+  /** Extra riding time added to every leg, in percent of distance ÷ speed. */
+  slackPct: number;
+  /** Riders are asked to arrive this long before a spoke rolls out. */
+  meetBeforeStartMin: number;
   mergeHoldMin: number;
   ridersPerMarshal: { low: number; high: number };
   signalsPerKmEstimate: number;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PARAMS as P, DEFAULT_SCENARIO as S } from '../src/config';
+import { P, S } from './fixture';
 import { applyData, waypointsKey, spokeWaypoints, type RoutesFile } from '../src/model/data';
 import { lengthM } from '../src/model/geo';
 import { computePlan } from '../src/model/model';

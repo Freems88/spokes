@@ -39,7 +39,7 @@ console.log(`SPOKES: ${plan.scenario.name}`);
 console.log('All figures are planning estimates.\n');
 console.log(
   `Assumptions: ${p.cruiseKmh} km/h · ${p.ridersPerRow} abreast · ${p.rowSpacingM} m rows ` +
-  `(${crowdMetresPerRider(mixCrowd, p).toFixed(2)} m/rider at the default age mix) · regroup ${p.regroupMin} min/pickup · merge hold ${p.mergeHoldMin} min · ` +
+  `(${crowdMetresPerRider(mixCrowd, p).toFixed(2)} m/rider at the default age mix) · regroup ${p.regroupMin} min/pickup · merge hold ${p.mergeHoldMin} min · cushion ${p.slackPct}% · ` +
   (signals ? 'signals: Toronto Open Data, snapped within 15 m' : `signals ≈${p.signalsPerKmEstimate}/km (estimated)`) +
   ` · routes: ${routes ? 'OSRM road network, cached' : 'straight lines between via points'}`,
 );
