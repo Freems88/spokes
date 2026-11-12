@@ -7,7 +7,9 @@
  * travel so it snaps to the street being ridden rather than a cross street,
  * park path or platform. Without bearings both profiles loop around blocks;
  * with them the bike profile stays within ~3% of the street length, while
- * the car profile still detours ~15% (one-ways and turn bans).
+ * the car profile still detours ~15% (one-ways and turn bans). The first
+ * point may sit inside a park (where riders gather), so it may snap up to
+ * 150 m to reach a street; later points must be within 40 m.
  */
 import { lengthM } from './geo';
 import type { LngLat } from './types';
@@ -51,7 +53,7 @@ export async function routeVia(
   const coords = waypoints.map(([x, y]) => `${round(x)},${round(y)}`).join(';');
   const profile = opts.profile ?? 'bike';
   const url = `${ROUTERS[profile]}/${coords}?overview=full&geometries=geojson&continue_straight=true` +
-    `&bearings=${travelBearings(waypoints)}&radiuses=${waypoints.map(() => 40).join(';')}`;
+    `&bearings=${travelBearings(waypoints)}&radiuses=${waypoints.map((_, i) => (i === 0 ? 150 : 40)).join(';')}`;
   try {
     const res = await (opts.fetchFn ?? fetch)(url, { signal: opts.signal });
     if (!res.ok) return fallback(`router HTTP ${res.status}`);

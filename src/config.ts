@@ -93,6 +93,9 @@ export const INTERSECTIONS = {
   bloorKipling: [-79.53536, 43.64179], // PX 1321
   // Tom Riley Park: on Bloor at the park's frontage, east of Islington (park outline: OpenStreetMap).
   tomRiley: [-79.5195, 43.64553],
+  // Gathering parks for the other starts (outlines from OpenStreetMap):
+  stephensonPark: [-79.30366, 43.68602], // ~130×155 m, just SW of Main & Danforth
+  eglintonPark: [-79.4053, 43.7058], // large park on Eglinton Ave W, ~560 m west of Yonge
   bloorIslington: [-79.52344, 43.64465], // PX 0339
   bloorRoyalYork: [-79.51136, 43.64736], // PX 0338
   bloorJane: [-79.48448, 43.64933], // PX 0333
@@ -171,13 +174,13 @@ export const DEFAULT_SCENARIO: Scenario = {
       name: 'East',
       area: 'The Danforth',
       arrivalOffsetMin: -4,
-      start: { id: 'e1', name: 'Main', lngLat: I.danforthMain, riders: 95 },
+      start: { id: 'e1', name: 'Stephenson Park', lngLat: I.stephensonPark, riders: 95 },
       pickups: [
         { id: 'e2', name: 'Woodbine', lngLat: I.danforthWoodbine, riders: 70 },
         { id: 'e3', name: 'Pape', lngLat: I.danforthPape, riders: 85 },
       ],
       path: [
-        I.danforthMain, I.danforthWoodbine,
+        I.stephensonPark, I.danforthWoodbine,
         I.danforthCoxwell, I.danforthDonlands, I.danforthPape, I.danforthChester, I.danforthBroadview,
         I.bloorCastleFrank, I.bloorSherbourne, I.bloorBay, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
@@ -187,13 +190,13 @@ export const DEFAULT_SCENARIO: Scenario = {
       name: 'North',
       area: 'Midtown',
       arrivalOffsetMin: -8,
-      start: { id: 'n1', name: 'Eglinton', lngLat: I.yongeEglinton, riders: 110 },
+      start: { id: 'n1', name: 'Eglinton Park', lngLat: I.eglintonPark, riders: 110 },
       pickups: [
         { id: 'n2', name: 'St Clair', lngLat: I.yongeStClair, riders: 65 },
       ],
       // Leaves Yonge at St Clair so it doesn't share Bloor with the East spoke.
       path: [
-        I.yongeEglinton, I.yongeDavisville, I.yongeStClair,
+        I.eglintonPark, I.yongeEglinton, I.yongeDavisville, I.yongeStClair,
         I.avenueStClair, I.avenueDupont, I.avenueDavenport, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },
