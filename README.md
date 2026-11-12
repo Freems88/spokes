@@ -32,6 +32,9 @@ npm run og         # redraw the link-preview image and home-screen icon (public/
 **GitHub Pages:** push to `main`; `.github/workflows/pages.yml` tests, builds and publishes.
 Once per repo: Settings → Pages → Source: **GitHub Actions**. On a free plan the repo must be public.
 
+Live at **https://spokes.stuckin.to/** (custom domain set in the repo's Pages settings; DNS: `CNAME spokes → freems88.github.io` at Porkbun).
+The preview-image URLs in `index.html` use that address.
+
 **Netlify:** connect the repo; `netlify.toml` has the build settings.
 
 Re-routing after an edit uses the public OSRM server at routing.openstreetmap.de (fair use).
