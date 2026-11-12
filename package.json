@@ -11,9 +11,11 @@
     "data": "tsx scripts/fetch-data.ts",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "og": "tsx scripts/og-image.ts"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",

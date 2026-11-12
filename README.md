@@ -10,7 +10,8 @@ Everything runs in the browser; there is no backend.
 ## Fill in the ride
 
 Edit `CAMPAIGN` at the top of `src/config.ts`: the ride's name, tagline, a line on why we ride,
-the date and an optional RSVP link. Empty fields are simply left off the page. Meeting points,
+the date and an optional RSVP link. Empty fields are simply left off the page. Run `npm run og` afterwards so
+the link-preview image matches; its URL in `index.html` is absolute, so update it if the site moves. Meeting points,
 rider numbers and times live in `DEFAULT_SCENARIO` in the same file (or edit them on the page
 under **For organisers** and share the link).
 
@@ -23,6 +24,7 @@ npm test           # model, simulation, editing, sharing and copy tests
 npm run plan       # print the default timetable and flags (--json for everything)
 npm run data       # re-fetch Toronto signals and boundaries, re-route the defaults (public/data/)
 npm run build      # static site in dist/
+npm run og         # redraw the link-preview image and home-screen icon (public/og.png, apple-touch-icon.png)
 ```
 
 ## Deploy
