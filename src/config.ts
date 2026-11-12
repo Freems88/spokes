@@ -154,10 +154,10 @@ export const DEFAULT_SCENARIO: Scenario = {
       name: 'West',
       area: 'Etobicoke & Bloor West',
       arrivalOffsetMin: 0,
-      start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 40 },
+      // Runnymede's riders split between its neighbours: 20 to Tom Riley Park, 50 to High Park.
+      start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 60 },
       pickups: [
-        { id: 'w1', name: 'Runnymede', lngLat: I.bloorRunnymede, riders: 70 },
-        { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 90 },
+        { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 140 },
         { id: 'w3', name: 'Dufferin', lngLat: I.bloorDufferin, riders: 100 },
       ],
       path: [
