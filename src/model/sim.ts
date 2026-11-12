@@ -199,7 +199,7 @@ export function buildSim(plan: Plan): Sim {
       sp.pickups.forEach((pk, k) => {
         const joined = s ? s.joined[k]! : arrived ? 1 : 0;
         const waiting = Math.max(0, pk.riders) * (1 - joined);
-        if (waiting > 0.5) blobs.push({ id: pk.id, lngLat: pk.lngLat, riders: waiting, kind: 'pickup' });
+        if (waiting > 0.5) blobs.push({ id: pk.id, lngLat: pk.gather?.lngLat ?? pk.lngLat, riders: waiting, kind: 'pickup' });
       });
       if (s) {
         pushColumn(r, s);

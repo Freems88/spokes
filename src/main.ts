@@ -260,7 +260,7 @@ function renderLegend(plan: Plan) {
 // ── Map layers ───────────────────────────────────────────────────────────
 
 function addLayers(map: maplibregl.Map) {
-  for (const id of ['areas', 'routes', 'signals', 'stops', 'blobs', 'columns', 'heads', 'held']) {
+  for (const id of ['areas', 'routes', 'gathers', 'signals', 'stops', 'blobs', 'columns', 'heads', 'held']) {
     map.addSource(id, { type: 'geojson', data: fc([]) });
   }
   // Former municipalities: faint outlines + names, shown in the "whole city" step.
@@ -297,6 +297,20 @@ function addLayers(map: maplibregl.Map) {
       'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 15, 5],
       'line-dasharray': [2, 1.5],
     },
+  });
+  // Gathering places off the route: dashed link to the pickup, a ring, and a name.
+  map.addLayer({
+    id: 'gather-links', type: 'line', source: 'gathers', filter: ['==', ['geometry-type'], 'LineString'],
+    paint: { 'line-color': '#52514e', 'line-width': 2, 'line-dasharray': [1.5, 1.5] },
+  });
+  map.addLayer({
+    id: 'gather-points', type: 'circle', source: 'gathers', filter: ['==', ['geometry-type'], 'Point'],
+    paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-stroke-color': ['get', 'color'], 'circle-stroke-width': 2.5 },
+  });
+  map.addLayer({
+    id: 'gather-labels', type: 'symbol', source: 'gathers', filter: ['==', ['geometry-type'], 'Point'], minzoom: 11,
+    layout: { 'text-field': ['get', 'name'], 'text-font': FONT, 'text-size': 11.5, 'text-offset': [0, 1.1], 'text-anchor': 'top' },
+    paint: { 'text-color': '#52514e', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
   });
   map.addLayer({
     id: 'signals', type: 'circle', source: 'signals',
@@ -376,6 +390,15 @@ function updateStatic(map: maplibregl.Map, plan: Plan) {
   for (const s of sc.spokes) for (const a of s.signalsAlongM ?? []) sigs.push(pt(pointAlong(s.path!, a)));
   for (const a of sc.terminalSignalsAlongM ?? []) sigs.push(pt(pointAlong(plan.terminal.path, a)));
   (map.getSource('signals') as GeoJSONSource).setData(fc(sigs));
+  const gathers: GeoJSON.Feature[] = [];
+  for (const s of sc.spokes) {
+    for (const st of [s.start, ...s.pickups]) {
+      if (!st.gather) continue;
+      gathers.push(ln([st.gather.lngLat, st.lngLat]));
+      gathers.push(pt(st.gather.lngLat, { name: st.gather.name, color: colorOf(s.id) }));
+    }
+  }
+  (map.getSource('gathers') as GeoJSONSource).setData(fc(gathers));
   const stops: GeoJSON.Feature[] = [];
   for (const s of sc.spokes) for (const st of [s.start, ...s.pickups]) stops.push(pt(st.lngLat, { name: st.name }));
   stops.push(pt(sc.merge.lngLat, { name: sc.merge.name }), pt(sc.destination.lngLat, { name: sc.destination.name }));

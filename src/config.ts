@@ -33,10 +33,10 @@ export const DEFAULT_PARAMS: Params = {
    * cruiseKmh. All values are rough planning guesses.
    */
   ages: {
-    kids: { label: 'Under 12', paceKmh: 10, spaceFactor: 1.6, marshalWeight: 2 },
-    teens: { label: '12–17', paceKmh: 16, spaceFactor: 1.0, marshalWeight: 1 },
-    adults: { label: '18–64', paceKmh: 16, spaceFactor: 1.0, marshalWeight: 1 },
-    seniors: { label: '65+', paceKmh: 13, spaceFactor: 1.1, marshalWeight: 1 },
+    kids: { label: 'Under 12', paceKmh: 10, spaceFactor: 1.6 },
+    teens: { label: '12–17', paceKmh: 16, spaceFactor: 1.0 },
+    adults: { label: '18–64', paceKmh: 16, spaceFactor: 1.0 },
+    seniors: { label: '65+', paceKmh: 13, spaceFactor: 1.1 },
   },
   /** Mix used at any stop that doesn't set its own. Shares should sum to 1. */
   defaultAgeMix: { kids: 0.05, teens: 0.05, adults: 0.78, seniors: 0.12 },
@@ -53,8 +53,11 @@ export const DEFAULT_PARAMS: Params = {
   meetBeforeStartMin: 15,
   /** The final ride leaves this long after the last rider of the last spoke arrives at the merge point. */
   mergeHoldMin: 15,
-  /** Marshals needed: 1 per 20–25 riders (shown as a range). */
-  ridersPerMarshal: { low: 20, high: 25 },
+  /**
+   * Marshals by role: a lead and a sweep per group, plus pairs who cork
+   * intersections and leapfrog to the front. See marshalsFor() in the model.
+   */
+  marshals: { leadSweep: 2, corkersPerIntersection: 2, setupS: 30, catchUpKmh: 20 },
   /**
    * Used only when a route has no real signal data yet (step 2 replaces it
    * with Toronto Open Data signals snapped to the route). Downtown arterials
@@ -99,7 +102,7 @@ export const INTERSECTIONS = {
   // Pickups: the column stops on the route street beside a park where riders wait.
   eastLynnPark: [-79.3153, 43.68514], // Danforth at East Lynn Park (fronts the Danforth), 250 m W of Woodbine
   carlawParkette: [-79.347, 43.67853], // Danforth at Carlaw; parkette ~70 m up Carlaw, 180 m W of Pape
-  salemParkette: [-79.4313, 43.66076], // Bloor at Salem Ave; parkette ~45 m up Salem, 360 m E of Dufferin
+  dufferinGrove: [-79.43245, 43.65621], // Dufferin Grove Park, ~300 m S of Bloor on Dufferin St
   rosedaleMoorePark: [-79.39485, 43.69096], // Yonge beside Rosedale-Moore Park, 320 m N of St Clair
   bloorIslington: [-79.52344, 43.64465], // PX 0339
   bloorRoyalYork: [-79.51136, 43.64736], // PX 0338
@@ -166,11 +169,13 @@ export const DEFAULT_SCENARIO: Scenario = {
       start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 60 },
       pickups: [
         { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 140 },
-        { id: 'w3', name: 'Salem Parkette', lngLat: I.salemParkette, riders: 100 },
+        // Riders gather in Dufferin Grove and ride ~470 m up Dufferin to join while the column stops.
+        { id: 'w3', name: 'Bloor & Dufferin', lngLat: I.bloorDufferin, riders: 100,
+          gather: { name: 'Dufferin Grove Park', lngLat: I.dufferinGrove } },
       ],
       path: [
         I.tomRiley, I.bloorRoyalYork, I.bloorJane, I.bloorRunnymede, I.bloorHighPark,
-        I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.salemParkette, I.bloorOssington, I.bloorBathurst,
+        I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.bloorOssington, I.bloorBathurst,
         I.bloorSpadina, I.bloorStGeorge, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },

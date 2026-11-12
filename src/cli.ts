@@ -46,7 +46,7 @@ console.log(
 console.log(
   'Ages: ' + AGE_GROUPS.map((g) => {
     const a = p.ages[g];
-    return `${a.label} ${pct(p.defaultAgeMix[g])} (${a.paceKmh} km/h, ${a.spaceFactor}× space, ${a.marshalWeight}× marshals)`;
+    return `${a.label} ${pct(p.defaultAgeMix[g])} (${a.paceKmh} km/h, ${a.spaceFactor}× space)`;
   }).join(' · ') + ` · a group sets the pace at ≥${pct(p.paceSetShare)} of a column`,
 );
 console.log(
@@ -64,7 +64,7 @@ for (const sp of plan.spokes) {
     const time = st.kind === 'pickup' ? `${hm(st.arriveS)}–${hm(st.departS)}` : hm(st.arriveS);
     const join = st.kind === 'merge' ? '' : `+${st.stop.riders}`;
     console.log(
-      `  ${pad(time, 13)}${pad(st.stop.name, 20)}${rpad(join, 5)}` +
+      `  ${pad(time, 13)}${pad(st.stop.name + (st.stop.gather ? ' *' : ''), 20)}${rpad(join, 5)}` +
       `${rpad(st.kind === 'merge' ? '' : Math.round(st.ridersAfter), 8)}` +
       `${rpad(st.kind === 'merge' ? '' : `${Math.round(st.lengthAfterM)} m`, 8)}` +
       `${rpad(leg ? km(leg.distanceM) : '', 10)}` +
@@ -73,11 +73,12 @@ for (const sp of plan.spokes) {
       `${rpad(leg ? `${Math.round(leg.blockageS)} s` : '', 10)}`,
     );
   });
+  for (const st of sp.stops) if (st.stop.gather) console.log(`  * riders gather at ${st.stop.gather.name} and ride over to join`);
   console.log(
     `  → ${km(sp.distanceM)} in ${mins(sp.durationS)} · start ${hm(sp.startS)} · head at merge ${hm(sp.headArriveMergeS)}, ` +
     `tail ${hm(sp.tailArriveMergeS)} · peak ${Math.round(sp.peakRiders)} riders / ${Math.round(sp.peakLengthM)} m · ` +
     `max hold ${Math.round(sp.maxBlockageS)} s · cross-streets held ${mins(sp.totalHoldS)} in total · ` +
-    `marshals ${sp.marshals.low}–${sp.marshals.high}\n`,
+    `marshals ${sp.marshals.total} (${sp.marshals.corkers} corking + ${sp.marshals.leadSweep} lead/sweep)\n`,
   );
 }
 
@@ -93,7 +94,7 @@ console.log(
 );
 console.log(
   `  holds each of ${est(t.signalsEstimated)}${t.signals} intersections for ${(t.blockageS / 60).toFixed(1)} min ` +
-  `(${Math.round(t.blockageS)} s) · marshals ${t.marshals.low}–${t.marshals.high}\n`,
+  `(${Math.round(t.blockageS)} s) · marshals ${t.marshals.total} (${t.marshals.corkers} corking + ${t.marshals.leadSweep} lead/sweep)\n`,
 );
 
 console.log(`Total riders: ${Math.round(plan.totalRiders)} · head arrivals at merge span ${mins(plan.arrivalSpreadS)}\n`);

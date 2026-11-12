@@ -20,7 +20,10 @@ const r5 = (n: number) => Math.round(n * 1e5) / 1e5;
 const ll = (p: LngLat): LngLat => [r5(p[0]), r5(p[1])];
 
 function compactScenario(sc: Scenario): unknown {
-  const stop = (s: Stop) => ({ id: s.id, n: s.name, c: ll(s.lngLat), r: s.riders, ...(s.ages ? { a: s.ages } : {}) });
+  const stop = (s: Stop) => ({
+    id: s.id, n: s.name, c: ll(s.lngLat), r: s.riders, ...(s.ages ? { a: s.ages } : {}),
+    ...(s.gather ? { g: { n: s.gather.name, c: ll(s.gather.lngLat) } } : {}),
+  });
   return {
     n: sc.name,
     m: stop(sc.merge),
@@ -98,7 +101,12 @@ function readStop(x: unknown, ids: Ids, prefix: string, dfltName: string): Stop 
   const c = coord(x.c);
   if (!c) return null;
   const ages = readAges(x.a);
-  return { id: ids.take(x.id, prefix), name: str(x.n, dfltName), lngLat: c, riders: Math.round(num(x.r, 0, 20000, 0)), ...(ages ? { ages } : {}) };
+  const g = isObj(x.g) ? coord(x.g.c) : null;
+  const gather = isObj(x.g) && g ? { name: str(x.g.n, 'Meeting point'), lngLat: g } : undefined;
+  return {
+    id: ids.take(x.id, prefix), name: str(x.n, dfltName), lngLat: c, riders: Math.round(num(x.r, 0, 20000, 0)),
+    ...(ages ? { ages } : {}), ...(gather ? { gather } : {}),
+  };
 }
 
 function readPath(x: unknown): LngLat[] | undefined {
@@ -136,13 +144,13 @@ function readScenario(x: unknown, fallback: Scenario): Scenario {
 const RANGES = {
   cruiseKmh: [5, 30], ridersPerRow: [1, 6], rowSpacingM: [1, 6], regroupMin: [0, 30], mergeHoldMin: [0, 60], slackPct: [0, 100], meetBeforeStartMin: [0, 60],
   paceSetShare: [0, 1], signalsPerKmEstimate: [0, 10],
-  ridersPerMarshal: { low: [5, 100], high: [5, 100] },
+  marshals: { leadSweep: [0, 20], corkersPerIntersection: [1, 6], setupS: [0, 300], catchUpKmh: [8, 40] },
   thresholds: {
     maxColumnM: [20, 5000], maxBlockageS: [5, 1200], minStartRiders: [0, 1000],
     maxArrivalSpreadMin: [0, 120], maxStopOffsetM: [10, 2000],
   },
   defaultAgeMix: Object.fromEntries(AGE_GROUPS.map((g) => [g, [0, 1]])),
-  ages: Object.fromEntries(AGE_GROUPS.map((g) => [g, { paceKmh: [3, 30], spaceFactor: [0.5, 4], marshalWeight: [0, 10] }])),
+  ages: Object.fromEntries(AGE_GROUPS.map((g) => [g, { paceKmh: [3, 30], spaceFactor: [0.5, 4] }])),
 } as const;
 
 function applyRanges(target: Record<string, unknown>, patch: unknown, ranges: Record<string, unknown>) {
@@ -159,9 +167,6 @@ function readParams(x: unknown, defaults: Params): Params {
   applyRanges(p as unknown as Record<string, unknown>, x, RANGES as unknown as Record<string, unknown>);
   if (isObj(x) && typeof x.targetMergeArrival === 'string' && /^([01]?\d|2[0-3]):[0-5]\d$/.test(x.targetMergeArrival)) {
     p.targetMergeArrival = x.targetMergeArrival;
-  }
-  if (p.ridersPerMarshal.low > p.ridersPerMarshal.high) {
-    [p.ridersPerMarshal.low, p.ridersPerMarshal.high] = [p.ridersPerMarshal.high, p.ridersPerMarshal.low];
   }
   return p;
 }

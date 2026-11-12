@@ -29,7 +29,7 @@ export function renderPanel(
         <div><dt>Longest column</dt><dd>${r(s.peakLengthM)} m</dd></div>
         <div><dt>Longest hold</dt><dd>${r(s.maxBlockageS)} s</dd></div>
         <div><dt>Signals crossed</dt><dd>${s.signals}</dd></div>
-        <div><dt>Marshals</dt><dd>${s.marshals.low}–${s.marshals.high}</dd></div>
+        <div><dt>Marshals</dt><dd title="${s.marshals.corkers} corking + ${s.marshals.leadSweep} lead/sweep">${s.marshals.total}</dd></div>
         <div><dt>At merge</dt><dd>${hm(s.headArriveMergeS)}</dd></div>
       </dl>
       <p class="stops">${s.stops.slice(0, -1).map((st) =>
@@ -49,7 +49,7 @@ export function renderPanel(
         <div><dt>Signals</dt><dd>${t.signals}</dd></div>
         <div><dt>Head arrives</dt><dd>${hm(t.headArriveS)}</dd></div>
         <div><dt>Tail arrives</dt><dd>${hm(t.tailArriveS)}</dd></div>
-        <div><dt>Marshals</dt><dd>${t.marshals.low}–${t.marshals.high}</dd></div>
+        <div><dt>Marshals</dt><dd title="${t.marshals.corkers} corking + ${t.marshals.leadSweep} lead/sweep">${t.marshals.total}</dd></div>
       </dl>
     </article>`;
 
@@ -67,11 +67,12 @@ export function renderPanel(
     ['Hold at merge after last arrival', `${p.mergeHoldMin} min`],
     ['Schedule cushion on riding time', `${p.slackPct}%`],
     ['Meet before roll-out at starts', `${p.meetBeforeStartMin} min`],
-    ['Marshals', `1 per ${p.ridersPerMarshal.low}–${p.ridersPerMarshal.high} riders`],
+    ['Marshals per group', `${p.marshals.leadSweep} lead/sweep + ${p.marshals.corkersPerIntersection} per held corner, leapfrogging`],
+    ['Corkers in place / catch-up speed', `${p.marshals.setupS} s ahead / ${p.marshals.catchUpKmh} km/h`],
     ...AGE_GROUPS.map((g): [string, string] => {
       const a = p.ages[g];
-      return [`Age ${a.label}: share · pace · space · marshal weight`,
-        `${r(p.defaultAgeMix[g] * 100)}% · ${a.paceKmh} km/h · ${a.spaceFactor}× · ${a.marshalWeight}×`];
+      return [`Age ${a.label}: share · pace · space`,
+        `${r(p.defaultAgeMix[g] * 100)}% · ${a.paceKmh} km/h · ${a.spaceFactor}×`];
     }),
     ['An age group sets the pace at', `≥ ${r(p.paceSetShare * 100)}% of a column`],
     ['Comfort limits', `${p.thresholds.maxColumnM} m column / ${p.thresholds.maxBlockageS} s hold`],

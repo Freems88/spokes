@@ -7,7 +7,7 @@
 import { CAMPAIGN } from './config';
 import { esc } from './editor';
 import type { Area } from './model/geo';
-import { comfortMaxRiders, crowdLengthM, crowdMetresPerRider, formatClock as hm, stopCrowd } from './model/model';
+import { comfortMaxRiders, crowdLengthM, crowdMetresPerRider, feederRideS, formatClock as hm, stopCrowd } from './model/model';
 import type { LngLat, Params, Plan } from './model/types';
 
 export type View = { bounds: [LngLat, LngLat] } | { center: LngLat; zoom: number };
@@ -157,9 +157,11 @@ export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string)
           <li><span class="tm">${hm(st.departS - p.meetBeforeStartMin * 60)}</span>
             <span class="pl">${esc(st.stop.name)}</span>
             <span class="what">meet here · rolls out ${hm(st.departS)}</span></li>` : `
-          <li><span class="tm">${hm(st.arriveS)}</span>
+          <li>${st.stop.gather ? `<span class="tm">${hm(st.arriveS - p.meetBeforeStartMin * 60)}</span>
+            <span class="pl">${esc(st.stop.gather.name)}</span>
+            <span class="what">meet here · leave at ${hm(st.arriveS - Math.ceil(feederRideS(st.stop, p) / 60) * 60)} to join the ride at ${esc(st.stop.name)} · it leaves ${hm(st.departS)}</span>` : `<span class="tm">${hm(st.arriveS)}</span>
             <span class="pl">${esc(st.stop.name)}</span>
-            <span class="what">ride arrives · leaves ${hm(st.departS)}</span></li>`).join('')}
+            <span class="what">ride arrives · leaves ${hm(st.departS)}</span>`}</li>`).join('')}
         <li><span class="tm">${hm(s.headArriveMergeS)}</span><span class="pl">${esc(sc.merge.name)}</span><span class="what">arrives</span></li>
       </ol>
     </article>`).join('');
@@ -198,7 +200,9 @@ export function organiserIntroHtml(plan: Plan): string {
     <h2>For organisers</h2>
     <p class="intro">Every time on this page comes from a simple, open model: group length is riders × road space,
       and the time a corner is held is length ÷ speed. Groups of about 150–${k.comfortMax} riders keep holds under
-      ${plan.params.thresholds.maxBlockageS} s. Move starts, add pickups and spokes, change numbers, ages and assumptions;
+      ${plan.params.thresholds.maxBlockageS} s. Marshals are counted by role: a lead and a sweep per group, plus pairs who
+      hold each corner and leapfrog ahead. This plan needs about ${Math.max(plan.spokes.reduce((n, sp) => n + sp.marshals.total, 0), plan.terminal.marshals.total)}
+      at its busiest, and the spoke marshals carry on as the final ride's. Move starts, add pickups and spokes, change numbers, ages and assumptions;
       the map and timetable update, and the address bar becomes a link to your plan.</p>`;
 }
 

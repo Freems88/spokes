@@ -24,11 +24,26 @@ export const columnLengthM = (riders: number, p: Params) => Math.max(0, riders) 
 /** Blockage = time for the whole column to pass a corked intersection = length ÷ speed. */
 export const blockageS = (riders: number, p: Params) => columnLengthM(riders, p) / speedMs(p);
 
-/** 1 marshal per 20–25 riders, rounded up. */
-export const marshalsFor = (riders: number, p: Params): Marshals => ({
-  low: Math.ceil(riders / p.ridersPerMarshal.high),
-  high: Math.ceil(riders / p.ridersPerMarshal.low),
-});
+/**
+ * Marshals for one moving group, by role: a lead and a sweep, plus pairs of
+ * corkers. A pair is in place a little before the head reaches a corner,
+ * holds it until the tail clears, then rides up past the column to the next
+ * free corner. We need enough pairs to cover the corners the column reaches
+ * while the others are still catching up: pairs = cycle time × corners per second.
+ */
+export function marshalsFor(lengthM: number, paceMs: number, distanceM: number, signals: number, p: Params): Marshals {
+  const m = p.marshals;
+  const gain = Math.max(0.5, m.catchUpKmh / 3.6 - paceMs); // how fast corkers gain on the column
+  const cycleS = m.setupS + lengthM / paceMs + (lengthM + paceMs * m.setupS) / gain;
+  const cornersPerS = signals > 0 && distanceM > 0 ? (signals / distanceM) * paceMs : 0;
+  const pairs = signals > 0 ? Math.min(signals, Math.max(1, Math.ceil(cycleS * cornersPerS))) : 0;
+  const corkers = pairs * m.corkersPerIntersection;
+  return { total: corkers + m.leadSweep, corkers, leadSweep: m.leadSweep, cycleS };
+}
+
+/** The busiest leg sets a group's marshal count. */
+const maxMarshals = (ms: Marshals[], p: Params): Marshals =>
+  ms.reduce((a, b) => (b.total > a.total ? b : a), { total: p.marshals.leadSweep, corkers: 0, leadSweep: p.marshals.leadSweep, cycleS: 0 });
 
 /** The largest group that stays within both comfort thresholds. */
 export const comfortMaxRiders = (p: Params, mPerRider = metresPerRider(p), speed = speedMs(p)) =>
@@ -79,11 +94,14 @@ export function crowdPace(c: Crowd, p: Params): { kmh: number; setBy: AgeGroup |
   return { kmh, setBy };
 }
 
-/** Marshals from riders weighted by age (a child counts as two at defaults). */
-export function crowdMarshals(c: Crowd, p: Params): Marshals {
-  const weighted = AGE_GROUPS.reduce((a, g) => a + c[g] * p.ages[g].marshalWeight, 0);
-  return marshalsFor(Math.round(weighted * 1e6) / 1e6, p);
-}
+
+/**
+ * Seconds to ride from a gathering place to its pickup: straight-line distance
+ * × 1.4 for the streets, at the lead pace. Feeders leave this long before the
+ * column arrives, so nobody waits on the corner.
+ */
+export const feederRideS = (stop: Stop, p: Params) =>
+  stop.gather ? (haversineM(stop.gather.lngLat, stop.lngLat) * 1.4) / speedMs(p) : 0;
 
 export function parseClock(hhmm: string): number {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
@@ -203,7 +221,7 @@ function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags
     maxBlockageS: Math.max(0, ...legs.map((l) => l.blockageS)),
     signals: legs.reduce((a, l) => a + l.signals, 0),
     totalHoldS: legs.reduce((a, l) => a + l.signals * l.blockageS, 0),
-    marshals: crowdMarshals(crowd, p),
+    marshals: maxMarshals(legs.map((l) => marshalsFor(l.lengthM, l.paceKmh / 3.6, l.distanceM, l.signals, p)), p),
     stops, legs, path,
   };
 }
@@ -294,7 +312,7 @@ export function computePlan(sc: Scenario, p: Params): Plan {
     riders, crowd, paceKmh: pace.kmh, paceSetBy: pace.setBy, joinAtMerge: crowdSize(joinCrowd), lengthM: len, blockageS: block, distanceM: tDist,
     departS, headArriveS: departS + tTravel, tailArriveS: departS + tTravel + len / v,
     durationS: tTravel, signals: tSig.signals, signalsEstimated: tSig.estimated,
-    totalHoldS: tSig.signals * block, marshals: crowdMarshals(crowd, p), path: tPath,
+    totalHoldS: tSig.signals * block, marshals: marshalsFor(len, v, tDist, tSig.signals, p), path: tPath,
   };
   if (len > th.maxColumnM || block > th.maxBlockageS) {
     flags.push({

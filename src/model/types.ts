@@ -11,8 +11,6 @@ export interface AgeProfile {
   paceKmh: number;
   /** Road space per rider relative to an adult (1 = 1 m at defaults). */
   spaceFactor: number;
-  /** How many riders each one counts as when sizing marshals. */
-  marshalWeight: number;
 }
 
 export interface Stop {
@@ -23,6 +21,11 @@ export interface Stop {
   riders: number;
   /** Age mix of those riders as shares; missing groups → 0. Missing entirely → params.defaultAgeMix. */
   ages?: Partial<Crowd>;
+  /**
+   * Where riders wait, when that isn't on the route (e.g. a park a block
+   * away). They ride from here to join the column while it stops.
+   */
+  gather?: { name: string; lngLat: LngLat };
 }
 
 export interface Spoke {
@@ -73,7 +76,16 @@ export interface Params {
   /** Riders are asked to arrive this long before a spoke rolls out. */
   meetBeforeStartMin: number;
   mergeHoldMin: number;
-  ridersPerMarshal: { low: number; high: number };
+  marshals: {
+    /** Lead rider(s) plus sweep at the back. */
+    leadSweep: number;
+    /** Marshals holding each corked intersection (one per side of cross traffic). */
+    corkersPerIntersection: number;
+    /** How long before the head arrives corkers want to be in place. */
+    setupS: number;
+    /** How fast corkers ride when leapfrogging back to the front. */
+    catchUpKmh: number;
+  };
   signalsPerKmEstimate: number;
   /** "HH:MM", local time. */
   targetMergeArrival: string;
@@ -125,8 +137,11 @@ export interface Leg {
 }
 
 export interface Marshals {
-  low: number;
-  high: number;
+  total: number;
+  corkers: number;
+  leadSweep: number;
+  /** Seconds one corking pair is tied up per intersection (set up, hold, catch up). */
+  cycleS: number;
 }
 
 export interface SpokePlan {

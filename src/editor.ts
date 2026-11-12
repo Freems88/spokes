@@ -35,8 +35,10 @@ const SETTINGS: [string, string, string, number, number, number, number?][] = [
   ['mergeHoldMin', 'Hold at merge after last arrival', 'min', 0, 60, 1],
   ['slackPct', 'Schedule cushion on riding time', '%', 0, 100, 5],
   ['meetBeforeStartMin', 'Meet before roll-out at starts', 'min', 0, 60, 5],
-  ['ridersPerMarshal.low', 'Marshals: 1 per (busiest)', 'riders', 5, 100, 1],
-  ['ridersPerMarshal.high', 'Marshals: 1 per (lightest)', 'riders', 5, 100, 1],
+  ['marshals.leadSweep', 'Marshals: lead + sweep per group', '', 0, 20, 1],
+  ['marshals.corkersPerIntersection', 'Marshals: corkers per held intersection', '', 1, 6, 1],
+  ['marshals.setupS', 'Corkers in place before the head arrives', 's', 0, 300, 5],
+  ['marshals.catchUpKmh', "Corkers' catch-up speed", 'km/h', 8, 40, 1],
   ['paceSetShare', 'An age group sets the pace at', '% of a column', 0, 100, 1, 100],
   ['thresholds.maxColumnM', 'Comfort limit: column length', 'm', 20, 5000, 10],
   ['thresholds.maxBlockageS', 'Comfort limit: hold per intersection', 's', 5, 1200, 5],
@@ -118,13 +120,12 @@ export function renderEditor(el: HTMLElement, sc: Scenario, p: Params, colorOf: 
 
   const ageTable = `
     <table class="agetable">
-      <thead><tr><th>Age</th><th>City-wide %</th><th>Pace km/h</th><th>Space ×</th><th>Marshal ×</th></tr></thead>
+      <thead><tr><th>Age</th><th>City-wide %</th><th>Pace km/h</th><th>Space ×</th></tr></thead>
       <tbody>${AGE_GROUPS.map((g) => `
         <tr><th scope="row">${esc(p.ages[g].label)}</th>
           <td><input type="number" min="0" max="100" step="1" data-param="defaultAgeMix.${g}" data-scale="100" value="${pct(p.defaultAgeMix[g])}" aria-label="${esc(p.ages[g].label)} share of riders"></td>
           <td><input type="number" min="3" max="30" step="0.5" data-param="ages.${g}.paceKmh" data-scale="1" value="${p.ages[g].paceKmh}" aria-label="${esc(p.ages[g].label)} pace"></td>
           <td><input type="number" min="0.5" max="4" step="0.1" data-param="ages.${g}.spaceFactor" data-scale="1" value="${p.ages[g].spaceFactor}" aria-label="${esc(p.ages[g].label)} road space"></td>
-          <td><input type="number" min="0" max="10" step="0.5" data-param="ages.${g}.marshalWeight" data-scale="1" value="${p.ages[g].marshalWeight}" aria-label="${esc(p.ages[g].label)} marshal weight"></td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -189,7 +190,6 @@ export function bindEditor(el: HTMLElement, h: EditorHandlers, getState: () => {
       const v = Math.min(max, Math.max(min, n)) / scale;
       h.updateParams((p) => {
         set(p, t.dataset.param!, v);
-        if (p.ridersPerMarshal.low > p.ridersPerMarshal.high) p.ridersPerMarshal.high = p.ridersPerMarshal.low;
       });
     }
   });

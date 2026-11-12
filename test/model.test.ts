@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { P, S } from './fixture';
 import { haversineM, lengthM, project, slice } from '../src/model/geo';
 import {
-  blockageS, columnLengthM, comfortMaxRiders, computePlan, crowdLengthM, crowdMarshals, crowdMetresPerRider,
+  blockageS, columnLengthM, comfortMaxRiders, computePlan, crowdLengthM, crowdMetresPerRider,
   crowdPace, formatClock, marshalsFor, parseClock, stopCrowd,
 } from '../src/model/model';
 import type { Crowd, Scenario, Stop } from '../src/model/types';
@@ -21,9 +21,27 @@ describe('column basics (spec sanity tests)', () => {
     expect(columnLengthM(950, P)).toBeCloseTo(950, 6);
     expect(blockageS(950, P) / 60).toBeCloseTo(4.38, 2);
   });
-  it('marshals: 1 per 20–25, rounded up', () => {
-    expect(marshalsFor(300, P)).toEqual({ low: 12, high: 15 });
-    expect(marshalsFor(1, P)).toEqual({ low: 1, high: 1 });
+  describe('marshals by role', () => {
+    const v12 = 12 / 3.6;
+    it('worked example: 313 m column at 12 km/h, 19 signals in 3.8 km → 6 corking pairs + lead/sweep = 14', () => {
+      // cycle = 30 s setup + 94 s hold + (313 m + 100 m) ÷ (20 − 12 km/h) ≈ 310 s; corners every 60 s → 6 pairs
+      const m = marshalsFor(313, v12, 3800, 19, P);
+      expect(m.cycleS).toBeCloseTo(30 + 313 / v12 + (313 + v12 * 30) / (20 / 3.6 - v12), 6);
+      expect(m).toMatchObject({ corkers: 12, leadSweep: 2, total: 14 });
+    });
+    it('no signals → only lead and sweep', () => {
+      expect(marshalsFor(313, v12, 3800, 0, P)).toMatchObject({ corkers: 0, total: 2 });
+    });
+    it('longer columns and denser signals need more corkers', () => {
+      const base = marshalsFor(200, v12, 3000, 10, P).corkers;
+      expect(marshalsFor(900, v12, 3000, 10, P).corkers).toBeGreaterThan(base);
+      expect(marshalsFor(200, v12, 3000, 20, P).corkers).toBeGreaterThanOrEqual(base);
+    });
+    it('never more pairs than corners, and stays finite if corkers are slow', () => {
+      expect(marshalsFor(964, v12, 1900, 8, P).corkers).toBeLessThanOrEqual(8 * P.marshals.corkersPerIntersection);
+      const slow = { ...P, marshals: { ...P.marshals, catchUpKmh: 10 } };
+      expect(Number.isFinite(marshalsFor(300, v12, 3000, 10, slow).total)).toBe(true);
+    });
   });
   it('comfort max is set by the tighter threshold (75 s ≈ 271 m at 13 km/h)', () => {
     expect(comfortMaxRiders(P)).toBe(270);
@@ -53,9 +71,6 @@ describe('age mix', () => {
   });
   it('pace never exceeds cruise even if every group could go faster', () => {
     expect(crowdPace(stopCrowd(stop(100, { teens: 1 }), P), P).kmh).toBe(P.cruiseKmh);
-  });
-  it('marshals: each child counts as two riders', () => {
-    expect(crowdMarshals(stopCrowd(stop(100, { kids: 0.5, adults: 0.5 }), P), P)).toEqual(marshalsFor(150, P));
   });
   it('zero riders → zero length, cruise pace', () => {
     const c = stopCrowd(stop(0), P);
