@@ -7,7 +7,8 @@ import type { GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 maplibregl.setWorkerUrl(workerUrl);
 import { RouteService } from './app/routes';
-import { DEFAULT_PARAMS, DEFAULT_SCENARIO } from './config';
+import { CAMERA, DEFAULT_PARAMS, DEFAULT_SCENARIO } from './config';
+import { cameraTarget } from './model/camera';
 import { bindEditor, esc, renderEditor, setEditStatus, type PlaceMode } from './editor';
 import {
   resolveScenario, routesByKey, signalPoints, spokeWaypoints, TERMINAL_ID, type RoutesFile, type SignalsFile,
@@ -107,7 +108,9 @@ async function main() {
     container: 'map',
     style: STYLE,
     bounds: boundsOf(state.scenario),
-    fitBoundsOptions: { padding: { top: 40, bottom: 30, left: 30, right: 30 } },
+    fitBoundsOptions: { padding: { top: 40, bottom: 30, left: 30, right: 30 }, bearing: CAMERA.bearing, pitch: CAMERA.pitch },
+    bearing: CAMERA.bearing,
+    pitch: CAMERA.pitch,
     attributionControl: { compact: true, customAttribution: 'Signals: City of Toronto Open Data (OGL–Toronto) · Routes: OSRM / FOSSGIS' },
     fadeDuration: reducedMotion ? 0 : 300,
     // The page scrolls past the map: one finger / plain wheel scrolls the page, two fingers / Ctrl+wheel move the map.
@@ -135,8 +138,9 @@ async function main() {
   };
 
   const markers = new Markers(map, (id, to) => commit(edit.moveStop(state.scenario, id, to)));
-  const playback = setupPlayback(map);
-  const story = setupStory(map, playback, areas);
+  const follow = new FollowCamera(map);
+  const playback = setupPlayback(map, follow);
+  const story = setupStory(map, playback, follow, areas);
 
   function recompute() {
     const resolved = resolveScenario(state.scenario, routes.lookup, snap);
@@ -442,7 +446,7 @@ function renderEssay(plan: Plan, areas: Area[] | null) {
 
 // ── Story: scroll drives the map ─────────────────────────────────────────
 
-function setupStory(map: maplibregl.Map, playback: ReturnType<typeof setupPlayback>, areas: Area[] | null) {
+function setupStory(map: maplibregl.Map, playback: ReturnType<typeof setupPlayback>, follow: FollowCamera, areas: Area[] | null) {
   const el = $('story');
   let steps: MapStep[] = [];
   let active: string | null = null;
@@ -462,9 +466,11 @@ function setupStory(map: maplibregl.Map, playback: ReturnType<typeof setupPlayba
     else map.cooperativeGestures.enable();
     el.querySelectorAll('.step').forEach((s) => s.classList.toggle('active', (s as HTMLElement).dataset.step === id));
     const all = () => boundsOfPts([...plan.spokes.flatMap((s) => s.path), ...plan.terminal.path]);
+    const angle = id === 'plan' ? { bearing: 0, pitch: 0 } : { bearing: CAMERA.bearing, pitch: CAMERA.pitch };
+    follow.set(id === 'find');
     if (id === 'plan' || id === 'find' || id === 'why') {
       setAreas(false);
-      map.fitBounds(all(), { padding: padding(), duration });
+      if (id !== 'find') map.fitBounds(all(), { padding: padding(), duration, ...angle });
       if (id === 'plan') playback.free();
       else if (id === 'find') playback.loop({ from: sim.t0, to: sim.t1, speed: 60 });
       else playback.goto((Math.min(...plan.spokes.map((s) => s.headArriveMergeS)) + Math.max(...plan.spokes.map((s) => s.startS))) / 2);
@@ -473,9 +479,9 @@ function setupStory(map: maplibregl.Map, playback: ReturnType<typeof setupPlayba
     const step = steps.find((s) => s.id === id);
     if (!step) return;
     setAreas(!!step.showAreas);
-    if ('bounds' in step.view) map.fitBounds(step.view.bounds, { padding: padding(), duration, maxZoom: 15.5 });
-    else if (reducedMotion) map.jumpTo({ center: step.view.center, zoom: step.view.zoom });
-    else map.flyTo({ center: step.view.center, zoom: step.view.zoom, duration });
+    if ('bounds' in step.view) map.fitBounds(step.view.bounds, { padding: padding(), duration, maxZoom: 15.5, ...angle });
+    else if (reducedMotion) map.jumpTo({ center: step.view.center, zoom: step.view.zoom, ...angle });
+    else map.flyTo({ center: step.view.center, zoom: step.view.zoom, duration, ...angle });
     if (step.loop) playback.loop(step.loop);
     else if (step.at !== undefined) playback.goto(step.at);
   }
@@ -509,7 +515,8 @@ function setupStory(map: maplibregl.Map, playback: ReturnType<typeof setupPlayba
     const id = (e.target as HTMLElement).closest<HTMLElement>('[data-show-spoke]')?.dataset.showSpoke;
     const sp = plan.spokes.find((s) => s.id === id);
     if (!sp) return;
-    map.fitBounds(boundsOfPts(sp.path), { padding: padding(), duration });
+    follow.set(false);
+    map.fitBounds(boundsOfPts(sp.path), { padding: padding(), duration, bearing: CAMERA.bearing, pitch: CAMERA.pitch });
     playback.loop({ from: sp.startS, to: sp.tailArriveMergeS, speed: 60 });
     if (!desktop.matches) $('map').scrollIntoView({ block: 'nearest' });
   });
@@ -586,9 +593,61 @@ class Markers {
   }
 }
 
+// ── Follow camera ────────────────────────────────────────────────────────
+
+/**
+ * Keeps the ride in frame as it plays: overview, then tightening on the
+ * spokes as they come downtown, Queen's Park for the merge, and out again to
+ * City Hall for the final ride (see model/camera.ts). Eases while playing,
+ * snaps when scrubbing. Any drag, zoom or rotate hands the map back.
+ */
+class FollowCamera {
+  on = !reducedMotion;
+  private cur: { lng: number; lat: number; zoom: number } | null = null;
+  private button = $<HTMLButtonElement>('follow');
+
+  constructor(private map: maplibregl.Map) {
+    this.button.addEventListener('click', () => this.set(!this.on));
+    for (const ev of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const) {
+      map.on(ev, (e: { originalEvent?: Event }) => { if (e.originalEvent) this.set(false); });
+    }
+    this.sync();
+  }
+
+  set(on: boolean) {
+    this.on = on;
+    if (!on) this.cur = null;
+    this.sync();
+  }
+
+  private sync() { this.button.setAttribute('aria-pressed', String(this.on)); }
+
+  frame(s: SimState, dt: number | null) {
+    if (!this.on || !plan) return;
+    const wide = window.matchMedia('(min-width: 900px)').matches;
+    const target = this.map.cameraForBounds(cameraTarget(plan, s).bounds, {
+      padding: wide ? { top: 90, bottom: 50, left: 60, right: 60 } : { top: 60, bottom: 30, left: 30, right: 30 },
+      bearing: CAMERA.bearing, pitch: CAMERA.pitch, maxZoom: CAMERA.maxZoom,
+    });
+    if (!target?.center || target.zoom === undefined) return;
+    const c = maplibregl.LngLat.convert(target.center);
+    const goal = { lng: c.lng, lat: c.lat, zoom: target.zoom };
+    if (!this.cur || dt === null || reducedMotion) this.cur = goal;
+    else {
+      const k = 1 - Math.exp(-dt / CAMERA.easeS);
+      this.cur = {
+        lng: this.cur.lng + (goal.lng - this.cur.lng) * k,
+        lat: this.cur.lat + (goal.lat - this.cur.lat) * k,
+        zoom: this.cur.zoom + (goal.zoom - this.cur.zoom) * k,
+      };
+    }
+    this.map.jumpTo({ center: [this.cur.lng, this.cur.lat], zoom: this.cur.zoom, bearing: CAMERA.bearing, pitch: CAMERA.pitch });
+  }
+}
+
 // ── Playback ─────────────────────────────────────────────────────────────
 
-function setupPlayback(map: maplibregl.Map) {
+function setupPlayback(map: maplibregl.Map, follow: FollowCamera) {
   const play = $<HTMLButtonElement>('play');
   const speed = $<HTMLSelectElement>('speed');
   const scrub = $<HTMLInputElement>('scrub');
@@ -600,10 +659,13 @@ function setupPlayback(map: maplibregl.Map) {
   /** A window the story is looping; cleared as soon as the viewer takes over. */
   let loop: { from: number; to: number; speed: number } | null = null;
 
-  const render = () => {
+  /** `dt`: real seconds since the last frame while playing; null to snap (scrub, jump, pause). */
+  const render = (dt: number | null = null) => {
     scrub.value = String(Math.round(t));
     scrub.setAttribute('aria-valuetext', formatClock(t));
-    draw(map, sim.at(t));
+    const s = sim.at(t);
+    draw(map, s);
+    follow.frame(s, dt);
   };
   const setPlaying = (p: boolean) => {
     playing = p;
@@ -621,11 +683,15 @@ function setupPlayback(map: maplibregl.Map) {
     last = now;
     t = Math.min(sim.t1, t + dt * (loop ? loop.speed : Number(speed.value)));
     if (loop && t >= loop.to) t = loop.from;
-    render();
+    render(dt);
     if (t >= sim.t1) return setPlaying(false);
     raf = requestAnimationFrame(tick);
   };
-  play.addEventListener('click', () => { loop = null; setPlaying(!playing); });
+  play.addEventListener('click', () => {
+    loop = null;
+    if (!playing) follow.set(true);
+    setPlaying(!playing);
+  });
   scrub.addEventListener('input', () => { loop = null; t = Number(scrub.value); render(); });
 
   return {

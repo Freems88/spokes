@@ -24,6 +24,13 @@ export const CAMPAIGN = {
   linkText: 'RSVP',
 };
 
+/**
+ * The map's storytelling angle: tilted and turned so Toronto's street grid
+ * runs square to the screen (Yonge points up). `easeS` is how quickly the
+ * follow camera catches up with where it should be, in seconds of real time.
+ */
+export const CAMERA = { pitch: 50, bearing: -17, easeS: 1.4, maxZoom: 15.8 };
+
 export const DEFAULT_PARAMS: Params = {
   /** The pace the lead sets. Mass rides with mixed abilities often go 10–13 km/h. */
   cruiseKmh: 12,
