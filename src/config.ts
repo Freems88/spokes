@@ -25,11 +25,13 @@ export const CAMPAIGN = {
 };
 
 /**
- * The map's storytelling angle: tilted and turned so Toronto's street grid
- * runs square to the screen (Yonge points up). `easeS` is how quickly the
- * follow camera catches up with where it should be, in seconds of real time.
+ * The map's storytelling angle: a 45° tilt with Toronto's street grid turned
+ * 45° to the screen, for a roughly isometric look from over the lake
+ * (the grid itself runs at −17°; −17 + 45 = 28). Use −62 for the other
+ * diagonal, or −17 to square the grid up. `easeS` is how quickly the follow
+ * camera catches up with where it should be, in seconds of real time.
  */
-export const CAMERA = { pitch: 50, bearing: -17, easeS: 1.4, maxZoom: 15.8 };
+export const CAMERA = { pitch: 45, bearing: 28, easeS: 1.4, maxZoom: 15.8 };
 
 export const DEFAULT_PARAMS: Params = {
   /** The pace the lead sets. Mass rides with mixed abilities often go 10–13 km/h. */
