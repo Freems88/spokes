@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spokes — ride in from your neighbourhood, arrive together</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#2b2b2b" />
+    <meta name="description" content="Small rides from every corner of Toronto, growing as they roll in, meeting for one ride to City Hall. Find your spoke." />
+  </head>
+  <body>
+    <a class="skip" href="#find">Skip to where and when to join</a>
+    <header class="hero" id="hero"></header>
+    <p class="notice" id="notice" role="alert" hidden></p>
+
+    <main class="layout">
+      <section class="stage" aria-label="Animated ride map">
+        <div class="mapwrap">
+          <div id="map" role="application" aria-label="Map of Toronto showing the ride routes and the moving groups. Points can be focused and moved with arrow keys."></div>
+          <div class="legend" id="legend" aria-label="Legend"></div>
+          <div class="now" aria-live="off">
+            <div class="clock" id="clock">--:--</div>
+            <div class="nowstat" id="nowstat"></div>
+          </div>
+          <div class="placebar" id="placebar" role="status" hidden>
+            <span id="placetext"></span>
+            <button type="button" class="btn" id="placecancel">Cancel</button>
+          </div>
+        </div>
+        <div class="controls" role="group" aria-label="Playback">
+          <button id="play" type="button" class="btn primary" aria-pressed="false">Play</button>
+          <label class="speed">
+            <span class="sr-only">Playback speed</span>
+            <select id="speed">
+              <option value="1">1×</option>
+              <option value="5">5×</option>
+              <option value="10">10×</option>
+              <option value="30">30×</option>
+              <option value="60" selected>60×</option>
+            </select>
+          </label>
+          <input id="scrub" type="range" min="0" max="1" step="1" aria-label="Time of day" />
+          <div class="marks" id="marks"></div>
+        </div>
+      </section>
+
+      <div class="col">
+        <div class="story" id="story" aria-label="The ride"></div>
+        <section class="block" id="find" aria-label="Find your spoke"></section>
+        <section class="block" id="why" aria-label="Why spokes">
+          <div id="why-text"></div>
+          <figure><figcaption>How long each intersection waits for a group to pass</figcaption><div id="chart-hold"></div></figure>
+        </section>
+        <aside class="block panel" id="plan" aria-label="For organisers">
+          <div id="plan-intro"></div>
+          <figure><figcaption>Each group at its largest: riders · length · time each corner is held</figcaption><div id="chart-groups"></div></figure>
+          <div class="tabs" role="tablist" aria-label="Plan views">
+            <button type="button" role="tab" id="tab-summary" aria-selected="true" aria-controls="summary">Timetable &amp; checks</button>
+            <button type="button" role="tab" id="tab-edit" aria-selected="false" aria-controls="editor">Edit plan</button>
+          </div>
+          <div id="summary" class="tabpanel" role="tabpanel" aria-labelledby="tab-summary"></div>
+          <div id="editor" class="tabpanel editor" role="tabpanel" aria-labelledby="tab-edit" hidden></div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <img class="mark-sm" src="favicon.svg" alt="" width="24" height="24" />
+      <p>Times and numbers are estimates from an open planning model; the ride is marshalled and the plan may change.</p>
+      <p>Data: traffic signals and former municipality boundaries from City of Toronto Open Data (Open Government Licence – Toronto).
+        Basemap © OpenMapTiles, © OpenStreetMap contributors, via OpenFreeMap. Routing: OSRM on FOSSGIS servers.</p>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

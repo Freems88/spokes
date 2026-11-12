@@ -1,0 +1,4 @@
+# Alternative host: Netlify builds the same static site.
+[build]
+  command = "npm test && npm run build"
+  publish = "dist"
