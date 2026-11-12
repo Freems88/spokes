@@ -2,6 +2,10 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './style.css';
 import * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl';
+// MapLibre looks for its worker next to its own module file, which bundling moves.
+// Ship the (self-contained) worker as an asset and point MapLibre at it.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+maplibregl.setWorkerUrl(workerUrl);
 import { RouteService } from './app/routes';
 import { DEFAULT_PARAMS, DEFAULT_SCENARIO } from './config';
 import { bindEditor, esc, renderEditor, setEditStatus, type PlaceMode } from './editor';
