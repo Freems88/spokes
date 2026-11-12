@@ -96,6 +96,11 @@ export const INTERSECTIONS = {
   // Gathering parks for the other starts (outlines from OpenStreetMap):
   stephensonPark: [-79.30366, 43.68602], // ~130×155 m, just SW of Main & Danforth
   eglintonPark: [-79.4053, 43.7058], // large park on Eglinton Ave W, ~560 m west of Yonge
+  // Pickups: the column stops on the route street beside a park where riders wait.
+  eastLynnPark: [-79.3153, 43.68514], // Danforth at East Lynn Park (fronts the Danforth), 250 m W of Woodbine
+  carlawParkette: [-79.347, 43.67853], // Danforth at Carlaw; parkette ~70 m up Carlaw, 180 m W of Pape
+  salemParkette: [-79.4313, 43.66076], // Bloor at Salem Ave; parkette ~45 m up Salem, 360 m E of Dufferin
+  rosedaleMoorePark: [-79.39485, 43.69096], // Yonge beside Rosedale-Moore Park, 320 m N of St Clair
   bloorIslington: [-79.52344, 43.64465], // PX 0339
   bloorRoyalYork: [-79.51136, 43.64736], // PX 0338
   bloorJane: [-79.48448, 43.64933], // PX 0333
@@ -161,11 +166,11 @@ export const DEFAULT_SCENARIO: Scenario = {
       start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 60 },
       pickups: [
         { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 140 },
-        { id: 'w3', name: 'Dufferin', lngLat: I.bloorDufferin, riders: 100 },
+        { id: 'w3', name: 'Salem Parkette', lngLat: I.salemParkette, riders: 100 },
       ],
       path: [
         I.tomRiley, I.bloorRoyalYork, I.bloorJane, I.bloorRunnymede, I.bloorHighPark,
-        I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.bloorOssington, I.bloorBathurst,
+        I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.salemParkette, I.bloorOssington, I.bloorBathurst,
         I.bloorSpadina, I.bloorStGeorge, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },
@@ -176,12 +181,12 @@ export const DEFAULT_SCENARIO: Scenario = {
       arrivalOffsetMin: -4,
       start: { id: 'e1', name: 'Stephenson Park', lngLat: I.stephensonPark, riders: 95 },
       pickups: [
-        { id: 'e2', name: 'Woodbine', lngLat: I.danforthWoodbine, riders: 70 },
-        { id: 'e3', name: 'Pape', lngLat: I.danforthPape, riders: 85 },
+        { id: 'e2', name: 'East Lynn Park', lngLat: I.eastLynnPark, riders: 70 },
+        { id: 'e3', name: 'Carlaw Parkette', lngLat: I.carlawParkette, riders: 85 },
       ],
       path: [
-        I.stephensonPark, I.danforthWoodbine,
-        I.danforthCoxwell, I.danforthDonlands, I.danforthPape, I.danforthChester, I.danforthBroadview,
+        I.stephensonPark, I.danforthWoodbine, I.eastLynnPark,
+        I.danforthCoxwell, I.danforthDonlands, I.danforthPape, I.carlawParkette, I.danforthChester, I.danforthBroadview,
         I.bloorCastleFrank, I.bloorSherbourne, I.bloorBay, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },
@@ -192,11 +197,11 @@ export const DEFAULT_SCENARIO: Scenario = {
       arrivalOffsetMin: -8,
       start: { id: 'n1', name: 'Eglinton Park', lngLat: I.eglintonPark, riders: 110 },
       pickups: [
-        { id: 'n2', name: 'St Clair', lngLat: I.yongeStClair, riders: 65 },
+        { id: 'n2', name: 'Rosedale-Moore Park', lngLat: I.rosedaleMoorePark, riders: 65 },
       ],
       // Leaves Yonge at St Clair so it doesn't share Bloor with the East spoke.
       path: [
-        I.eglintonPark, I.yongeEglinton, I.yongeDavisville, I.yongeStClair,
+        I.eglintonPark, I.yongeEglinton, I.yongeDavisville, I.rosedaleMoorePark, I.yongeStClair,
         I.avenueStClair, I.avenueDupont, I.avenueDavenport, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
       ],
     },
