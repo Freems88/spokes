@@ -210,7 +210,16 @@ describe('plan', () => {
     expect(padded.maxBlockageS).toBeCloseTo(plain.maxBlockageS, 6); // corner holds use the real pace
   });
 
-  it('is deterministic', () => {
+  it('the final ride has its own pace: slower means longer to City Hall and longer holds', () => {
+    const fast = computePlan(S, P).terminal;
+    const slow = computePlan(S, { ...P, finalPaceKmh: 8 }).terminal;
+    expect(slow.paceKmh).toBe(8);
+    expect(slow.durationS).toBeCloseTo(fast.durationS * (13 / 8), 3);
+    expect(slow.blockageS).toBeCloseTo(fast.blockageS * (13 / 8), 3);
+    expect(computePlan(S, { ...P, finalPaceKmh: 8 }).spokes[0]!.durationS).toBeCloseTo(computePlan(S, P).spokes[0]!.durationS, 6);
+  });
+
+    it('is deterministic', () => {
     expect(JSON.stringify(computePlan(S, P))).toBe(JSON.stringify(plan));
   });
 });

@@ -73,6 +73,8 @@ export interface Thresholds {
 export interface Params {
   /** The pace the lead marshal sets; slow age groups can pull it down, never up. */
   cruiseKmh: number;
+  /** The final ride's pace: everyone together moves slower than a spoke. */
+  finalPaceKmh: number;
   ages: Record<AgeGroup, AgeProfile>;
   defaultAgeMix: Crowd;
   /** An age group sets the pace once it is at least this share of a column. */

@@ -59,7 +59,8 @@ export function renderPanel(
     : '<p class="note">No warnings.</p>';
 
   const rows: [string, string][] = [
-    ['Lead pace', `${p.cruiseKmh} km/h`],
+    ['Lead pace (spokes)', `${p.cruiseKmh} km/h`],
+    ['Final ride pace', `${p.finalPaceKmh} km/h`],
     ['Riders per row', `${p.ridersPerRow}`],
     ['Row spacing', `${p.rowSpacingM} m`],
     ['Space per rider (default age mix)', `${crowdMetresPerRider(mix, p).toFixed(2)} m`],

@@ -9,7 +9,7 @@ import type { Params, Scenario } from '../src/model/types';
 
 export const P: Params = {
   ...structuredClone(DEFAULT_PARAMS),
-  cruiseKmh: 13, regroupMin: 3, mergeHoldMin: 5, slackPct: 0, meetBeforeStartMin: 15,
+  cruiseKmh: 13, finalPaceKmh: 13, regroupMin: 3, mergeHoldMin: 5, slackPct: 0, meetBeforeStartMin: 15,
 };
 
 const base = structuredClone(DEFAULT_SCENARIO);

@@ -42,6 +42,12 @@ export const DEFAULT_PARAMS: Params = {
   /** The pace the lead sets. Mass rides with mixed abilities often go 10–13 km/h. */
   cruiseKmh: 12,
   /**
+   * The final ride's pace. Hundreds of riders starting from a standstill,
+   * stretching and bunching, filming and chanting, move more like a
+   * procession than a commute. Slower means each corner is held longer.
+   */
+  finalPaceKmh: 8,
+  /**
    * Age groups. A group slows the column to its pace once it makes up at
    * least `paceSetShare` of the riders; it never speeds the column up past
    * cruiseKmh. All values are rough planning guesses.

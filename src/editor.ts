@@ -29,7 +29,8 @@ export const esc = (s: string) =>
 
 /** Numeric settings: [path, label, unit, min, max, step, scale shown]. */
 const SETTINGS: [string, string, string, number, number, number, number?][] = [
-  ['cruiseKmh', 'Lead pace', 'km/h', 5, 30, 0.5],
+  ['cruiseKmh', 'Lead pace (spokes)', 'km/h', 5, 30, 0.5],
+  ['finalPaceKmh', 'Final ride pace', 'km/h', 3, 30, 0.5],
   ['ridersPerRow', 'Riders per row', '', 1, 6, 0.1],
   ['rowSpacingM', 'Row spacing', 'm', 1, 6, 0.1],
   ['regroupMin', 'Regroup at each pickup', 'min', 0, 30, 1],

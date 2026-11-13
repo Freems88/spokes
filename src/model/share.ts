@@ -150,7 +150,7 @@ function readScenario(x: unknown, fallback: Scenario): Scenario {
 
 /** Allowed range for every numeric parameter, mirroring Params' shape. */
 const RANGES = {
-  cruiseKmh: [5, 30], ridersPerRow: [1, 6], rowSpacingM: [1, 6], regroupMin: [0, 30], mergeHoldMin: [0, 60], slackPct: [0, 100], meetBeforeStartMin: [0, 60],
+  cruiseKmh: [5, 30], finalPaceKmh: [3, 30], ridersPerRow: [1, 6], rowSpacingM: [1, 6], regroupMin: [0, 30], mergeHoldMin: [0, 60], slackPct: [0, 100], meetBeforeStartMin: [0, 60],
   paceSetShare: [0, 1], joinLeadMin: [0, 30], signalsPerKmEstimate: [0, 10],
   marshals: { leadSweep: [0, 20], corkersPerIntersection: [1, 6], setupS: [0, 300], catchUpKmh: [8, 40] },
   thresholds: {

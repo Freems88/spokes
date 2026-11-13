@@ -358,7 +358,8 @@ export function computePlan(sc: Scenario, p: Params): Plan {
   const joinCrowd = stopCrowd(sc.merge, p);
   const crowd = toMerge.reduce((c, s) => addCrowds(c, s.stops.at(-1)!.crowdAfter), joinCrowd);
   const riders = crowdSize(crowd);
-  const pace = crowdPace(crowd, p);
+  // The final ride's own pace; a slow age group can still pull it lower.
+  const pace = crowdPace(crowd, { ...p, cruiseKmh: p.finalPaceKmh });
   const v = pace.kmh / 3.6;
   const lastTail = toMerge.length ? Math.max(...toMerge.map((s) => s.tailArriveMergeS)) : target;
   const departS = lastTail + p.mergeHoldMin * 60;
