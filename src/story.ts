@@ -24,6 +24,9 @@ export interface MapStep {
 
 const r = Math.round;
 const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
+const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+/** Small counts as words ("three groups"), larger ones as digits. */
+const count = (n: number) => WORDS[n] ?? String(n);
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
 const minsWords = (s: number) => (s < 75 ? 'about a minute' : s < 105 ? 'about a minute and a half' : `${(s / 60).toFixed(1)} minutes`);
 
@@ -51,7 +54,7 @@ export function keyNumbers(plan: Plan) {
 export function heroHtml(plan: Plan): string {
   const t = plan.terminal;
   const n = plan.spokes.length;
-  const when = CAMPAIGN.date ? `${esc(CAMPAIGN.date)} · Toronto` : 'Toronto';
+  const when = `${esc(CAMPAIGN.date || CAMPAIGN.season)}${CAMPAIGN.date || CAMPAIGN.season ? ' · ' : ''}Toronto`;
   const link = /^https:\/\//.test(CAMPAIGN.linkUrl)
     ? `<a class="btn ghost" href="${esc(CAMPAIGN.linkUrl)}" rel="noopener">${esc(CAMPAIGN.linkText)}</a>` : '';
   return `
@@ -79,13 +82,14 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
   const t = plan.terminal;
   const all = boundsOf([...plan.spokes.flatMap((s) => s.path), ...t.path]);
   const startNames = plan.spokes.map((s) => s.stops[0]!.stop.name);
+  const corridors = [...new Set(sc.spokes.map((s) => s.corridor).filter((c): c is string => !!c))];
   const firstStart = Math.min(...plan.spokes.map((s) => s.startS));
   const steps: MapStep[] = [];
 
   steps.push({
     id: 'city', heading: 'It starts small',
-    html: `<p>Just after ${hm(firstStart)}, ${plan.spokes.length === 1 ? 'a small group rolls' : `${plan.spokes.length} small groups roll`} out
-      from ${esc(list(startNames))}. Each one starts close to where its riders live.</p>`,
+    html: `<p>From ${hm(firstStart)}, ${plan.spokes.length === 1 ? 'a small group rolls' : `${count(plan.spokes.length)} small groups roll`} out
+      from ${esc(list(startNames))}, each one close to where its riders live.</p>`,
     view: { bounds: all }, at: firstStart + 60, showAreas: true,
   });
 
@@ -95,9 +99,9 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
     const last = sp.stops.at(-2)!;
     steps.push({
       id: 'grow', heading: 'It grows as it rolls',
-      html: `<p>${esc(sp.name)} leaves ${esc(first.stop.name)} at ${hm(sp.startS)} with ${r(first.ridersAfter)} riders.
-        At ${esc(list(sp.stops.slice(1, -1).map((s) => s.stop.name)))}, more join.
-        By ${esc(last.stop.name)} it is <strong>${r(sp.peakRiders)} strong</strong>.</p>`,
+      html: `<p>${esc(sp.name)} leaves ${esc(first.stop.name)} at ${hm(sp.startS)} with ${r(first.ridersAfter)} riders${corridorOf(sc, sp.id) ? ` and heads along ${esc(corridorOf(sc, sp.id)!)}` : ''}.
+        More join at ${esc(list(sp.stops.slice(1, -1).map((s) => s.stop.name)))}, and by ${hm(last.departS)}
+        it's <strong>${r(sp.peakRiders)} strong</strong>.</p>`,
       view: { bounds: boundsOf(sp.path) },
       loop: { from: sp.startS, to: last.departS + 120, speed: 60 },
     });
@@ -106,8 +110,9 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
   const midS = (Math.min(...plan.spokes.map((s) => s.headArriveMergeS)) + Math.max(...plan.spokes.map((s) => s.startS))) / 2;
   steps.push({
     id: 'short', heading: 'Light on the streets',
-    html: `<p>Every group is short enough to clear an intersection in ${minsWords(keyNumbers(plan).spokeMaxHoldS)}.
-      Then the light goes back to normal. The city keeps moving while we do.</p>`,
+    html: `<p>${corridors.length ? `The spokes ride ${esc(list(corridors))}. ` : ''}Every group is short enough to clear an
+      intersection in ${minsWords(keyNumbers(plan).spokeMaxHoldS)}, then the light goes back to normal.
+      The city keeps moving while we do.</p>`,
     view: { bounds: all }, at: midS,
   });
 
@@ -123,7 +128,7 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
 
   steps.push({
     id: 'final', heading: 'One ride to City Hall',
-    html: `<p>At ${hm(t.departS)} we leave together: ${km(t.distanceM)} down to ${esc(sc.destination.name)}.
+    html: `<p>At ${hm(t.departS)} we leave together${sc.finalCorridor ? ` down ${esc(sc.finalCorridor)}` : ''}: ${km(t.distanceM)} to ${esc(sc.destination.name)}.
       Nearly ${t.lengthM >= 900 ? 'a kilometre' : `${r(t.lengthM / 100) * 100} metres`} of bikes, side by side.</p>`,
     view: { bounds: boundsOf(t.path) },
     loop: { from: t.departS - 30, to: t.tailArriveS + 30, speed: 30 },
@@ -141,6 +146,12 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
 
 // ── Find your spoke ─────────────────────────────────────────────────────
 
+const corridorOf = (sc: Plan['scenario'], id: string) => sc.spokes.find((s) => s.id === id)?.corridor;
+const subtitle = (s: Plan['scenario']['spokes'][number] | undefined) => {
+  const bits = [s?.area, s?.corridor ? `along ${s.corridor}` : ''].filter(Boolean) as string[];
+  return bits.length ? `<span class="area">${esc(bits.join(' · '))}</span>` : '';
+};
+
 /** Where and when to join. `colorOf` keys the swatch to the map. */
 export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string) => string): string {
   const sc = plan.scenario;
@@ -150,7 +161,7 @@ export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string)
   const cards = plan.spokes.map((s, i) => `
     <article class="spoke" data-spoke="${esc(s.id)}">
       <header><span class="sw" style="background:${colorOf(s.id)}"></span>
-        <h3>${esc(s.name)}</h3>${sc.spokes[i]?.area ? `<span class="area">${esc(sc.spokes[i]!.area!)}</span>` : ''}
+        <h3>${esc(s.name)}</h3>${subtitle(sc.spokes[i])}
         <button type="button" class="mini" data-show-spoke="${esc(s.id)}">Show on map</button></header>
       <ol class="times">
         ${s.stops.slice(0, -1).map((st) => st.kind === 'start' ? `
@@ -202,7 +213,9 @@ export function organiserIntroHtml(plan: Plan): string {
       and the time a corner is held is length ÷ speed. Groups of about 150–${k.comfortMax} riders keep holds under
       ${plan.params.thresholds.maxBlockageS} s. Marshals are counted by role: a lead and a sweep per group, plus pairs who
       hold each corner and leapfrog ahead. This plan needs about ${Math.max(plan.spokes.reduce((n, sp) => n + sp.marshals.total, 0), plan.terminal.marshals.total)}
-      at its busiest, and the spoke marshals carry on as the final ride's. Move starts, add pickups and spokes, change numbers, ages and assumptions;
+      at its busiest, and the spoke marshals carry on as the final ride's. Most of that is corking the spokes: if they
+      rode the bike lanes with the lights instead, in small groups, each would need only a lead and a sweep, leaving
+      the marshals for the final ride. The model doesn't simulate that option yet. Move starts, add pickups and spokes, change numbers, ages and assumptions;
       the map and timetable update, and the address bar becomes a link to your plan.</p>`;
 }
 

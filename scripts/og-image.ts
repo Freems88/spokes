@@ -84,7 +84,8 @@ function card(): string {
   const n = plan.spokes.length;
   const tagline = wrap(CAMPAIGN.tagline, 22);
   const facts = `${Math.round(plan.totalRiders)} riders · ${n} neighbourhood ${n === 1 ? 'ride' : 'rides'} · 1 ride to City Hall`;
-  const kicker = (CAMPAIGN.date ? `${CAMPAIGN.date} · ` : '') + 'Toronto';
+  const when = CAMPAIGN.date || CAMPAIGN.season;
+  const kicker = (when ? `${when} · ` : '') + 'Toronto';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
     <rect width="${W}" height="${H}" fill="${BG}"/>
     ${mapPanel(690, 40, 470, 550)}

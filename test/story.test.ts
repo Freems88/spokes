@@ -19,8 +19,8 @@ describe('page copy', () => {
     const h = heroHtml(plan);
     expect(h).toContain('>925<');
     expect(h).toContain(formatClock(plan.terminal.headArriveS));
-    expect(h).not.toContain('class="cause"');
-    expect(CAMPAIGN.cause).toBe(''); // placeholders stay empty until filled in
+    if (CAMPAIGN.cause) expect(h).toContain('class="cause"');
+    expect(h).toContain(CAMPAIGN.date ? 'Toronto' : 'Once a year');
   });
 
   it('find your spoke gives a meet-up time before each roll-out', () => {

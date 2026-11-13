@@ -33,6 +33,8 @@ export interface Spoke {
   name: string;
   /** Former municipality or area, used for labels. */
   area?: string;
+  /** The main street it rides, for the copy ("Bloor", "the Danforth"). */
+  corridor?: string;
   start: Stop;
   pickups: Stop[];
   /** Head arrival at the merge point, relative to the target time, in minutes (negative = earlier). */
@@ -50,6 +52,8 @@ export interface Scenario {
   merge: Stop;
   destination: Stop;
   terminalPath?: LngLat[];
+  /** The street the final ride takes ("University Avenue"). */
+  finalCorridor?: string;
   terminalSignalsAlongM?: number[];
 }
 

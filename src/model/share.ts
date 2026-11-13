@@ -29,8 +29,9 @@ function compactScenario(sc: Scenario): unknown {
     m: stop(sc.merge),
     d: stop(sc.destination),
     t: sc.terminalPath?.map(ll),
+    fc: sc.finalCorridor,
     s: sc.spokes.map((s) => ({
-      id: s.id, n: s.name, ar: s.area, o: s.arrivalOffsetMin,
+      id: s.id, n: s.name, ar: s.area, cr: s.corridor, o: s.arrivalOffsetMin,
       st: stop(s.start), p: s.pickups.map(stop), v: s.path?.map(ll),
     })),
   };
@@ -130,14 +131,20 @@ function readScenario(x: unknown, fallback: Scenario): Scenario {
       .map((p) => readStop(p, ids, 'p', 'Pickup'))
       .filter((p): p is Stop => p !== null);
     const area = typeof s.ar === 'string' ? str(s.ar, '', 40) : undefined;
+    const corridor = typeof s.cr === 'string' ? str(s.cr, '', 40) : undefined;
     spokes.push({
       id: ids.take(s.id, 's'), name: str(s.n, `Spoke ${spokes.length + 1}`, 40),
       ...(area ? { area } : {}),
+      ...(corridor ? { corridor } : {}),
       arrivalOffsetMin: Math.round(num(s.o, -120, 120, 0)),
       start, pickups, path: readPath(s.v),
     });
   }
-  return { name: str(x.n, 'Shared plan', 80), merge, destination: dest, terminalPath: readPath(x.t), spokes };
+  const finalCorridor = typeof x.fc === 'string' ? str(x.fc, '', 40) : '';
+  return {
+    name: str(x.n, 'Shared plan', 80), merge, destination: dest, terminalPath: readPath(x.t), spokes,
+    ...(finalCorridor ? { finalCorridor } : {}),
+  };
 }
 
 /** Allowed range for every numeric parameter, mirroring Params' shape. */

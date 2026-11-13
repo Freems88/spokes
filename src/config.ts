@@ -15,10 +15,15 @@ export const CAMPAIGN = {
   name: 'Spokes',
   /** Headline call to ride. */
   tagline: 'Ride in from your neighbourhood. Arrive together.',
-  /** One or two sentences on why we ride. */
-  cause: '',
-  /** e.g. 'Saturday, June 13'. */
+  /**
+   * One or two sentences on why we ride. Kept evergreen on purpose: no bill
+   * names, court cases or "this year", so the page holds up year to year.
+   */
+  cause: 'From every corner of the city, on the bike lanes we fought for, to show who uses them.',
+  /** e.g. 'Saturday, June 13'. Leave empty until there is one; `season` shows instead. */
   date: '',
+  /** Shown in place of a date. */
+  season: 'Once a year',
   /** Sign-up / RSVP / more-info link (https://…), optional. */
   linkUrl: '',
   linkText: 'RSVP',
@@ -165,6 +170,7 @@ const I = INTERSECTIONS;
 
 export const DEFAULT_SCENARIO: Scenario = {
   name: 'Default: three spokes to City Hall',
+  finalCorridor: 'University Avenue',
   merge: { id: 'merge', name: "Queen's Park", lngLat: I.qpWellesley, riders: 200 }, // downtown riders join here
   destination: { id: 'dest', name: 'Nathan Phillips Square', lngLat: I.nps, riders: 0 },
   terminalPath: [I.qpWellesley, I.qpcEGrosvenor, I.universityCollege, I.universityDundas, I.universityQueen, I.queenYork, I.nps],
@@ -173,6 +179,7 @@ export const DEFAULT_SCENARIO: Scenario = {
       id: 'west',
       name: 'West',
       area: 'Etobicoke & Bloor West',
+      corridor: 'Bloor',
       arrivalOffsetMin: 0,
       // Runnymede's riders split between its neighbours: 20 to Tom Riley Park, 50 to High Park.
       start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 60 },
@@ -192,6 +199,7 @@ export const DEFAULT_SCENARIO: Scenario = {
       id: 'east',
       name: 'East',
       area: 'The Danforth',
+      corridor: 'the Danforth',
       arrivalOffsetMin: -4,
       start: { id: 'e1', name: 'Stephenson Park', lngLat: I.stephensonPark, riders: 95 },
       pickups: [
@@ -208,6 +216,7 @@ export const DEFAULT_SCENARIO: Scenario = {
       id: 'north',
       name: 'North',
       area: 'Midtown',
+      corridor: 'Yonge',
       arrivalOffsetMin: -8,
       start: { id: 'n1', name: 'Eglinton Park', lngLat: I.eglintonPark, riders: 110 },
       pickups: [
