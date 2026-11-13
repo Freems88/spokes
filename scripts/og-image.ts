@@ -83,7 +83,7 @@ function card(): string {
   const W = 1200, H = 630;
   const n = plan.spokes.length;
   const tagline = wrap(CAMPAIGN.tagline, 22);
-  const facts = `${Math.round(plan.totalRiders)} riders · ${n} neighbourhood ${n === 1 ? 'ride' : 'rides'} · 1 ride to City Hall`;
+  const facts = `${Math.round(plan.totalRiders).toLocaleString('en-CA')} riders · ${n} neighbourhood ${n === 1 ? 'ride' : 'rides'} · 1 ride to City Hall`;
   const when = CAMPAIGN.date || CAMPAIGN.season;
   const kicker = (when ? `${when} · ` : '') + 'Toronto';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">

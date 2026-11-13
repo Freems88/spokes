@@ -17,5 +17,5 @@ describe('shipped default plan', () => {
     expect(Math.min(...plan.spokes.map((s) => s.startS))).toBeGreaterThan(parseClock('10:30'));
     expect(plan.terminal.tailArriveS).toBeLessThan(parseClock('13:30'));
   });
-  it('totals 925 riders', () => expect(plan.totalRiders).toBeCloseTo(925, 6));
+  it('totals a round 1,000 riders', () => expect(plan.totalRiders).toBeCloseTo(1000, 6));
 });

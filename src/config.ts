@@ -111,7 +111,12 @@ export const DEFAULT_PARAMS: Params = {
  * `npm run data` caches the snapped geometry in public/data/routes.geojson.
  * Without that cache the model uses straight lines between them.
  *
- * Pickup rider counts are split so each spoke hits the stated total.
+ * Riders: a round 1,000, a planning assumption, not a forecast. Split roughly
+ * by population of each spoke's catchment (former municipalities, with old
+ * Toronto shared between its west end, east end, midtown and downtown):
+ * about West 26%, East 35%, North 32%, downtown 7%. Nudged toward the core,
+ * where cycling is far denser and riders only need to reach Queen's Park:
+ *   West 250 · East 300 · North 250 · downtown 200.
  */
 export const INTERSECTIONS = {
   // West: Bloor St W
@@ -197,12 +202,11 @@ export const DEFAULT_SCENARIO: Scenario = {
       area: 'Etobicoke & Bloor West',
       corridor: 'Bloor',
       arrivalOffsetMin: 0,
-      // Runnymede's riders split between its neighbours: 20 to Tom Riley Park, 50 to High Park.
       start: { id: 'w0', name: 'Tom Riley Park', lngLat: I.tomRiley, riders: 60 },
       pickups: [
-        { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 140 },
+        { id: 'w2', name: 'High Park', lngLat: I.bloorHighPark, riders: 110 },
         // Riders gather in Dufferin Grove and ride ~470 m up Dufferin to join while the column stops.
-        { id: 'w3', name: 'Bloor & Dufferin', lngLat: I.bloorDufferin, riders: 100,
+        { id: 'w3', name: 'Bloor & Dufferin', lngLat: I.bloorDufferin, riders: 80,
           gather: { name: 'Dufferin Grove Park', lngLat: I.dufferinGrove } },
       ],
       path: [
@@ -217,10 +221,10 @@ export const DEFAULT_SCENARIO: Scenario = {
       area: 'The Danforth',
       corridor: 'the Danforth',
       arrivalOffsetMin: -4,
-      start: { id: 'e1', name: 'Stephenson Park', lngLat: I.stephensonPark, riders: 95 },
+      start: { id: 'e1', name: 'Stephenson Park', lngLat: I.stephensonPark, riders: 110 },
       pickups: [
-        { id: 'e2', name: 'East Lynn Park', lngLat: I.eastLynnPark, riders: 70 },
-        { id: 'e3', name: 'Carlaw Parkette', lngLat: I.carlawParkette, riders: 85 },
+        { id: 'e2', name: 'East Lynn Park', lngLat: I.eastLynnPark, riders: 90 },
+        { id: 'e3', name: 'Carlaw Parkette', lngLat: I.carlawParkette, riders: 100 },
         // North rides down Yonge and joins here; no one else waits on this corner.
         { id: 'e4', name: 'Bloor & Yonge', lngLat: I.bloorYonge, riders: 0 },
       ],
@@ -236,9 +240,9 @@ export const DEFAULT_SCENARIO: Scenario = {
       area: 'Midtown',
       corridor: 'Yonge',
       arrivalOffsetMin: -8,
-      start: { id: 'n1', name: 'Eglinton Park', lngLat: I.eglintonPark, riders: 110 },
+      start: { id: 'n1', name: 'Eglinton Park', lngLat: I.eglintonPark, riders: 150 },
       pickups: [
-        { id: 'n2', name: 'Rosedale-Moore Park', lngLat: I.rosedaleMoorePark, riders: 65 },
+        { id: 'n2', name: 'Rosedale-Moore Park', lngLat: I.rosedaleMoorePark, riders: 100 },
       ],
       // Down Yonge to Bloor, where it joins East and they ride on together
       // (Avenue Rd is a fast car thoroughfare).

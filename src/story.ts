@@ -23,6 +23,8 @@ export interface MapStep {
 }
 
 const r = Math.round;
+/** Rider counts as people write them: 1,000 not 1000. */
+const people = (x: number) => Math.round(x).toLocaleString('en-CA');
 const km = (m: number) => `${(m / 1000).toFixed(1)} km`;
 const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 /** Small counts as words ("three groups"), larger ones as digits. */
@@ -63,7 +65,7 @@ export function heroHtml(plan: Plan): string {
     <p class="lede">${esc(CAMPAIGN.tagline)}</p>
     ${CAMPAIGN.cause ? `<p class="cause">${esc(CAMPAIGN.cause)}</p>` : ''}
     <div class="stats">
-      <div class="stat"><span class="n">${r(plan.totalRiders)}</span><span class="l">riders</span></div>
+      <div class="stat"><span class="n">${people(plan.totalRiders)}</span><span class="l">riders</span></div>
       <div class="stat"><span class="n">${n}</span><span class="l">neighbourhood ${n === 1 ? 'ride' : 'rides'}</span></div>
       <div class="stat"><span class="n">1</span><span class="l">ride to City Hall</span></div>
       <div class="stat"><span class="n">${hm(t.headArriveS)}</span><span class="l">at ${esc(plan.scenario.destination.name)}</span></div>
@@ -101,7 +103,7 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
       id: 'grow', heading: 'It grows as it rolls',
       html: `<p>${esc(sp.name)} leaves ${esc(first.stop.name)} at ${hm(sp.startS)} with ${r(first.ridersAfter)} riders${corridorOf(sc, sp.id) ? ` and heads along ${esc(corridorOf(sc, sp.id)!)}` : ''}.
         More join at ${esc(list(sp.stops.slice(1, -1).map((s) => s.stop.name)))}${plan.spokes.some((o) => o.joins?.spokeId === sp.id) ? `, where ${esc(list(plan.spokes.filter((o) => o.joins?.spokeId === sp.id).map((o) => `${o.name} rides in to meet it at ${o.joins!.stopName}`)))}` : ''},
-        and by ${hm(last.departS)} it's <strong>${r(sp.peakRiders)} strong</strong>.</p>`,
+        and by ${hm(last.departS)} it's <strong>${people(sp.peakRiders)} strong</strong>.</p>`,
       view: { bounds: boundsOf(sp.path) },
       loop: { from: sp.startS, to: last.departS + 120, speed: 60 },
     });
@@ -122,7 +124,7 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
   steps.push({
     id: 'merge', heading: `We meet at ${sc.merge.name}`,
     html: `<p>From ${hm(Math.min(...heads))} the rides pour in${t.joinAtMerge ? `, and ${r(t.joinAtMerge)} more riders from downtown are waiting` : ''}.
-      By ${hm(lastTail)} there are <strong>${r(t.riders)} of us</strong>.</p>`,
+      By ${hm(lastTail)} there are <strong>${people(t.riders)} of us</strong>.</p>`,
     view: { center: sc.merge.lngLat, zoom: 15 },
     loop: { from: Math.min(...heads) - 120, to: lastTail + 60, speed: 30 },
   });
@@ -137,7 +139,7 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
 
   steps.push({
     id: 'arrive', heading: 'Arrive together',
-    html: `<p>${hm(t.headArriveS)}, ${esc(sc.destination.name)}. ${r(t.riders)} riders from across the city, in one place.</p>
+    html: `<p>${hm(t.headArriveS)}, ${esc(sc.destination.name)}. ${people(t.riders)} riders from across the city, in one place.</p>
       ${CAMPAIGN.cause ? `<p>${esc(CAMPAIGN.cause)}</p>` : ''}`,
     view: { center: sc.destination.lngLat, zoom: 15.3 },
     at: t.tailArriveS + 90,
@@ -204,7 +206,7 @@ export function whyHtml(plan: Plan): string {
   const k = keyNumbers(plan);
   return `
     <h2>Why spokes?</h2>
-    <p>One giant ride is a slow-moving wall: all ${r(k.all)} of us in one line would hold every intersection for
+    <p>One giant ride is a slow-moving wall: all ${people(k.all)} of us in one line would hold every intersection for
       ${minsWords(k.holdFor(k.all))}, all the way across the city.</p>
     <p>Riding in from many directions keeps every group short until the last ${km(plan.terminal.distanceM)}.
       More neighbourhoods take part, and nobody has to ride across town just to start.</p>`;

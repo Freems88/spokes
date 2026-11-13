@@ -26,7 +26,7 @@ export function renderHoldChart(el: HTMLElement, plan: Plan): void {
   const biggest = Math.max(...plan.spokes.map((s) => s.peakRiders), 0);
   const marks = [
     ...(biggest ? [{ n: biggest, label: `Our biggest spoke (${r(biggest)}): ${fmtHold(k.holdFor(biggest))}` }] : []),
-    { n: k.all, label: `Everyone in one line (${r(k.all)}): ${fmtHold(k.holdFor(k.all))}` },
+    { n: k.all, label: `Everyone in one line (${Math.round(k.all).toLocaleString('en-CA')}): ${fmtHold(k.holdFor(k.all))}` },
   ];
 
   el.innerHTML = `
