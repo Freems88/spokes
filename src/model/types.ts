@@ -35,6 +35,11 @@ export interface Spoke {
   area?: string;
   /** The main street it rides, for the copy ("Bloor", "the Danforth"). */
   corridor?: string;
+  /**
+   * Id of another spoke's pickup where this spoke joins it and rides on as
+   * one group, instead of riding to the merge point on its own.
+   */
+  joinsAt?: string;
   start: Stop;
   pickups: Stop[];
   /** Head arrival at the merge point, relative to the target time, in minutes (negative = earlier). */
@@ -72,6 +77,8 @@ export interface Params {
   defaultAgeMix: Crowd;
   /** An age group sets the pace once it is at least this share of a column. */
   paceSetShare: number;
+  /** A joining spoke arrives at its join point this long before the spoke it joins. */
+  joinLeadMin: number;
   ridersPerRow: number;
   rowSpacingM: number;
   regroupMin: number;
@@ -102,7 +109,7 @@ export interface Flag {
   level: FlagLevel;
   /** Spoke id, "terminal" or "plan". */
   scope: string;
-  code: 'slow-pace' | 'long-column' | 'long-blockage' | 'small-start' | 'arrival-spread' | 'stop-off-route' | 'stop-order' | 'empty';
+  code: 'join' | 'slow-pace' | 'long-column' | 'long-blockage' | 'small-start' | 'arrival-spread' | 'stop-off-route' | 'stop-order' | 'empty';
   message: string;
 }
 
@@ -150,6 +157,8 @@ export interface Marshals {
 
 export interface SpokePlan {
   id: string;
+  /** Set when this spoke ends by joining another; its "merge" times are then at the join point. */
+  joins?: { spokeId: string; spokeName: string; stopId: string; stopName: string };
   name: string;
   area?: string;
   startS: number;

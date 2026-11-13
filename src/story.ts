@@ -100,8 +100,8 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
     steps.push({
       id: 'grow', heading: 'It grows as it rolls',
       html: `<p>${esc(sp.name)} leaves ${esc(first.stop.name)} at ${hm(sp.startS)} with ${r(first.ridersAfter)} riders${corridorOf(sc, sp.id) ? ` and heads along ${esc(corridorOf(sc, sp.id)!)}` : ''}.
-        More join at ${esc(list(sp.stops.slice(1, -1).map((s) => s.stop.name)))}, and by ${hm(last.departS)}
-        it's <strong>${r(sp.peakRiders)} strong</strong>.</p>`,
+        More join at ${esc(list(sp.stops.slice(1, -1).map((s) => s.stop.name)))}${plan.spokes.some((o) => o.joins?.spokeId === sp.id) ? `, where ${esc(list(plan.spokes.filter((o) => o.joins?.spokeId === sp.id).map((o) => `${o.name} rides in to meet it at ${o.joins!.stopName}`)))}` : ''},
+        and by ${hm(last.departS)} it's <strong>${r(sp.peakRiders)} strong</strong>.</p>`,
       view: { bounds: boundsOf(sp.path) },
       loop: { from: sp.startS, to: last.departS + 120, speed: 60 },
     });
@@ -116,8 +116,9 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
     view: { bounds: all }, at: midS,
   });
 
-  const heads = plan.spokes.map((s) => s.headArriveMergeS);
-  const lastTail = Math.max(...plan.spokes.map((s) => s.tailArriveMergeS));
+  const toMerge = plan.spokes.filter((s) => !s.joins);
+  const heads = toMerge.map((s) => s.headArriveMergeS);
+  const lastTail = Math.max(...toMerge.map((s) => s.tailArriveMergeS));
   steps.push({
     id: 'merge', heading: `We meet at ${sc.merge.name}`,
     html: `<p>From ${hm(Math.min(...heads))} the rides pour in${t.joinAtMerge ? `, and ${r(t.joinAtMerge)} more riders from downtown are waiting` : ''}.
@@ -146,6 +147,8 @@ export function mapSteps(plan: Plan, areas: Area[] | null): MapStep[] {
 
 // ── Find your spoke ─────────────────────────────────────────────────────
 
+/** Names of the spokes that join at this stop ("North"), or ''. */
+const joinersAt = (plan: Plan, stopId: string) => list(plan.spokes.filter((s) => s.joins?.stopId === stopId).map((s) => s.name));
 const corridorOf = (sc: Plan['scenario'], id: string) => sc.spokes.find((s) => s.id === id)?.corridor;
 const subtitle = (s: Plan['scenario']['spokes'][number] | undefined) => {
   const bits = [s?.area, s?.corridor ? `along ${s.corridor}` : ''].filter(Boolean) as string[];
@@ -172,8 +175,10 @@ export function findHtml(plan: Plan, areas: Area[] | null, colorOf: (id: string)
             <span class="pl">${esc(st.stop.gather.name)}</span>
             <span class="what">meet here · leave at ${hm(st.arriveS - Math.ceil(feederRideS(st.stop, p) / 60) * 60)} to join the ride at ${esc(st.stop.name)} · it leaves ${hm(st.departS)}</span>` : `<span class="tm">${hm(st.arriveS)}</span>
             <span class="pl">${esc(st.stop.name)}</span>
-            <span class="what">ride arrives · leaves ${hm(st.departS)}</span>`}</li>`).join('')}
-        <li><span class="tm">${hm(s.headArriveMergeS)}</span><span class="pl">${esc(sc.merge.name)}</span><span class="what">arrives</span></li>
+            <span class="what">${joinersAt(plan, st.stop.id) ? `${esc(joinersAt(plan, st.stop.id))} ${joinersAt(plan, st.stop.id).includes(' and ') ? 'join' : 'joins'} here · leaves ${hm(st.departS)}` : `ride arrives · leaves ${hm(st.departS)}`}</span>`}</li>`).join('')}
+        ${s.joins
+          ? `<li><span class="tm">${hm(s.headArriveMergeS)}</span><span class="pl">${esc(s.joins.stopName)}</span><span class="what">meets ${esc(s.joins.spokeName)} and rides on with it</span></li>`
+          : `<li><span class="tm">${hm(s.headArriveMergeS)}</span><span class="pl">${esc(sc.merge.name)}</span><span class="what">arrives</span></li>`}
       </ol>
     </article>`).join('');
   const downtown = t.joinAtMerge > 0 ? `

@@ -176,6 +176,7 @@ async function main() {
 
   bindEditor($('editor'), {
     updateSpoke: (id, patch) => commit(edit.updateSpoke(state.scenario, id, patch)),
+    setJoin: (id, stopId) => commit(edit.setJoin(state.scenario, id, stopId), { structural: true }),
     updateStop: (id, patch) => commit(edit.updateStop(state.scenario, id, patch)),
     removePickup: (id) => commit(edit.removePickup(state.scenario, id), { structural: true }),
     startAt: (id) => commit(edit.startAtPickup(state.scenario, id), { structural: true }),

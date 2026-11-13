@@ -2,12 +2,14 @@
  * Scenario edits. Pure: every function returns a new Scenario.
  *
  * Path invariant for each spoke: `path` (the via points sent to the router)
- * starts at the spoke's start, ends at the merge point, and contains every
+ * starts at the spoke's start, ends at the merge point (or the pickup it
+ * joins on another spoke), and contains every
  * pickup's exact coordinate in order. Hand-placed via points between stops
  * are kept when a stop moves a little and dropped when it moves far, so the
  * router can find a new way rather than zig-zag back to the old street.
  */
 import { haversineM, project } from './geo';
+import { joinTarget, spokeEnd } from './model';
 import type { AgeGroup, LngLat, Scenario, Spoke, Stop } from './types';
 
 /** A stop moved farther than this loses the via points on either side of it. */
@@ -40,6 +42,23 @@ function stopIndices(sp: Spoke, path: LngLat[]): number[] | null {
   return out;
 }
 
+/** Where this spoke's route ends right now. */
+const endOf = (sc: Scenario, sp: Spoke): LngLat => spokeEnd(sc, sp).lngLat;
+
+/** Spokes that join at this stop. */
+const joinersOf = (sc: Scenario, stopId: string) => sc.spokes.filter((x) => x.joinsAt === stopId);
+
+/**
+ * Point a spoke's route at a new end. A small move keeps the via points;
+ * a far one drops those after its last stop so the router finds a new way.
+ */
+function retarget(sp: Spoke, from: LngLat, to: LngLat): void {
+  healPath(sp, from);
+  const path = sp.path!;
+  const lastStop = stopIndices(sp, path)!.at(-2)!;
+  sp.path = haversineM(from, to) > FAR_MOVE_M ? [...path.slice(0, lastStop + 1), to] : [...path.slice(0, -1), to];
+}
+
 /** Restore the invariant by rebuilding from stops if anything is off. */
 function healPath(sp: Spoke, merge: LngLat): void {
   let path = pathOf(sp, merge);
@@ -67,11 +86,12 @@ export function moveStop(sc0: Scenario, stopId: string, to: LngLat): Scenario {
   const hit = findStop(sc, stopId);
   if (!hit?.spoke) return sc0;
   const sp = hit.spoke;
-  healPath(sp, sc.merge.lngLat);
+  healPath(sp, endOf(sc, sp));
   const path = sp.path!;
   const idx = stopIndices(sp, path)!;
   const k = hit.index; // 0 = start
   const from = hit.stop.lngLat;
+  for (const j of joinersOf(sc, stopId)) retarget(j, from, to);
   hit.stop.lngLat = to;
   if (haversineM(from, to) <= FAR_MOVE_M) {
     path[idx[k]!] = to;
@@ -86,13 +106,7 @@ export function moveStop(sc0: Scenario, stopId: string, to: LngLat): Scenario {
 function moveMerge(sc: Scenario, to: LngLat): Scenario {
   const from = sc.merge.lngLat;
   const far = haversineM(from, to) > FAR_MOVE_M;
-  for (const sp of sc.spokes) {
-    healPath(sp, from);
-    const path = sp.path!;
-    const idx = stopIndices(sp, path)!;
-    const lastStop = idx.at(-2)!;
-    sp.path = far ? [...path.slice(0, lastStop + 1), to] : [...path.slice(0, -1), to];
-  }
+  for (const sp of sc.spokes) if (!joinTarget(sc, sp)) retarget(sp, from, to);
   const t = sc.terminalPath?.length ? [...sc.terminalPath] : [from, sc.destination.lngLat];
   sc.terminalPath = far ? [to, sc.destination.lngLat] : [to, ...t.slice(1)];
   sc.merge.lngLat = to;
@@ -125,7 +139,7 @@ export function addPickup(sc0: Scenario, spokeId: string, at: LngLat, name = 'Ne
   const sc = clone(sc0);
   const sp = sc.spokes.find((s) => s.id === spokeId);
   if (!sp || sp.pickups.length >= MAX_PICKUPS) return sc0;
-  healPath(sp, sc.merge.lngLat);
+  healPath(sp, endOf(sc, sp));
   const path = sp.path!;
   const idx = stopIndices(sp, path)!;
   // Which segment of the via-point path is nearest?
@@ -152,7 +166,8 @@ export function removePickup(sc0: Scenario, stopId: string): Scenario {
   const hit = findStop(sc, stopId);
   if (!hit?.spoke || hit.index === 0) return sc0;
   const sp = hit.spoke;
-  healPath(sp, sc.merge.lngLat);
+  for (const j of joinersOf(sc, stopId)) { retarget(j, hit.stop.lngLat, sc.merge.lngLat); delete j.joinsAt; }
+  healPath(sp, endOf(sc, sp));
   const i = sp.path!.findIndex((p) => same(p, hit.stop.lngLat));
   if (i > 0 && i < sp.path!.length - 1) sp.path!.splice(i, 1);
   sp.pickups.splice(hit.index - 1, 1);
@@ -176,6 +191,10 @@ export function addSpoke(sc0: Scenario, at: LngLat, name?: string): Scenario {
 
 export function removeSpoke(sc0: Scenario, spokeId: string): Scenario {
   const sc = clone(sc0);
+  const gone = sc.spokes.find((s) => s.id === spokeId);
+  for (const p of gone?.pickups ?? []) {
+    for (const j of joinersOf(sc, p.id)) { retarget(j, p.lngLat, sc.merge.lngLat); delete j.joinsAt; }
+  }
   sc.spokes = sc.spokes.filter((s) => s.id !== spokeId);
   return sc;
 }
@@ -186,8 +205,11 @@ export function startAtPickup(sc0: Scenario, stopId: string): Scenario {
   const hit = findStop(sc, stopId);
   if (!hit?.spoke || hit.index === 0) return sc0;
   const sp = hit.spoke;
-  healPath(sp, sc.merge.lngLat);
+  healPath(sp, endOf(sc, sp));
   const i = sp.path!.findIndex((p) => same(p, hit.stop.lngLat));
+  for (const p of [...sp.pickups.slice(0, hit.index - 1), hit.stop]) {
+    for (const j of joinersOf(sc, p.id)) { retarget(j, p.lngLat, sc.merge.lngLat); delete j.joinsAt; }
+  }
   const dropped = [sp.start, ...sp.pickups.slice(0, hit.index - 1)];
   const carried = dropped.reduce((a, s) => a + Math.max(0, s.riders), 0);
   sp.start = { ...hit.stop, riders: hit.stop.riders + carried };
@@ -214,5 +236,23 @@ export function updateSpoke(sc0: Scenario, spokeId: string, patch: Partial<Pick<
   const sp = sc.spokes.find((s) => s.id === spokeId);
   if (!sp) return sc0;
   Object.assign(sp, patch);
+  return sc;
+}
+
+/**
+ * Make a spoke end by joining another spoke at one of its pickups (or ride to
+ * the merge point again with null). A spoke that others join can't itself join.
+ */
+export function setJoin(sc0: Scenario, spokeId: string, stopId: string | null): Scenario {
+  const sc = clone(sc0);
+  const sp = sc.spokes.find((s) => s.id === spokeId);
+  if (!sp) return sc0;
+  if (stopId && sp.pickups.concat(sp.start).some((p) => joinersOf(sc, p.id).length)) return sc0;
+  const from = endOf(sc, sp);
+  if (stopId) {
+    sp.joinsAt = stopId;
+    if (!joinTarget(sc, sp)) return sc0;
+  } else delete sp.joinsAt;
+  retarget(sp, from, endOf(sc, sp));
   return sc;
 }

@@ -2,6 +2,7 @@
  * Glue between the cached /data GeoJSON files and a Scenario. Pure: callers
  * load the files (fetch in the browser, fs in the CLI) and pass them in.
  */
+import { spokeEnd } from './model';
 import { snapSignals } from './signals';
 import type { LngLat, Scenario } from './types';
 
@@ -35,7 +36,7 @@ export const waypointsKey = (pts: LngLat[]) => pts.map(([x, y]) => `${x.toFixed(
 export function spokeWaypoints(sc: Scenario, id: string): LngLat[] {
   if (id === TERMINAL_ID) return sc.terminalPath?.length ? sc.terminalPath : [sc.merge.lngLat, sc.destination.lngLat];
   const s = sc.spokes.find((x) => x.id === id)!;
-  return s.path?.length ? s.path : [s.start.lngLat, ...s.pickups.map((p) => p.lngLat), sc.merge.lngLat];
+  return s.path?.length ? s.path : [s.start.lngLat, ...s.pickups.map((p) => p.lngLat), spokeEnd(sc, s).lngLat];
 }
 
 /**

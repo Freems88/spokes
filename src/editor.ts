@@ -13,6 +13,7 @@ export type PlaceMode =
 
 export interface EditorHandlers {
   updateSpoke(id: string, patch: Partial<Pick<Spoke, 'name' | 'area' | 'arrivalOffsetMin'>>): void;
+  setJoin(spokeId: string, stopId: string | null): void;
   updateStop(id: string, patch: { name?: string; riders?: number; ages?: Partial<Record<AgeGroup, number>> | null }): void;
   removePickup(id: string): void;
   startAt(id: string): void;
@@ -40,6 +41,7 @@ const SETTINGS: [string, string, string, number, number, number, number?][] = [
   ['marshals.setupS', 'Corkers in place before the head arrives', 's', 0, 300, 5],
   ['marshals.catchUpKmh', "Corkers' catch-up speed", 'km/h', 8, 40, 1],
   ['paceSetShare', 'An age group sets the pace at', '% of a column', 0, 100, 1, 100],
+  ['joinLeadMin', 'A joining spoke arrives early by', 'min', 0, 30, 1],
   ['thresholds.maxColumnM', 'Comfort limit: column length', 'm', 20, 5000, 10],
   ['thresholds.maxBlockageS', 'Comfort limit: hold per intersection', 's', 5, 1200, 5],
   ['thresholds.minStartRiders', 'Smallest safe start', 'riders', 0, 1000, 5],
@@ -102,6 +104,13 @@ export function renderEditor(el: HTMLElement, sc: Scenario, p: Params, colorOf: 
         <label>Arrive vs target <span class="unit">min</span>
           <input type="number" min="-120" max="120" step="1" data-act="spoke-offset" value="${s.arrivalOffsetMin}"></label>
       </div>
+      <label class="setting">Rides to
+        <select data-act="spoke-join">
+          <option value="">${esc(sc.merge.name)} (the merge)</option>
+          ${sc.spokes.filter((o) => o.id !== s.id && !o.joinsAt).flatMap((o) => o.pickups.map((pk) =>
+            `<option value="${esc(pk.id)}" ${s.joinsAt === pk.id ? 'selected' : ''}>joins ${esc(o.name)} at ${esc(pk.name)}</option>`)).join('')}
+        </select>
+      </label>
       <ol class="stops">
         ${stopRow(s.start, 'start', p)}
         ${s.pickups.map((pk) => stopRow(pk, 'pickup', p)).join('')}
@@ -196,6 +205,11 @@ export function bindEditor(el: HTMLElement, h: EditorHandlers, getState: () => {
 
   el.addEventListener('change', (e) => {
     const t = e.target as HTMLInputElement;
+    if (t.dataset.act === 'spoke-join') {
+      const spoke = spokeOf(t);
+      if (spoke) h.setJoin(spoke, t.value || null);
+      return;
+    }
     if (t.dataset.act !== 'ages-default') return;
     const stop = stopOf(t);
     const box = t.closest<HTMLElement>('[data-ages]')!;

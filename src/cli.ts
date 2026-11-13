@@ -62,7 +62,7 @@ for (const sp of plan.spokes) {
   sp.stops.forEach((st, i) => {
     const leg = sp.legs[i];
     const time = st.kind === 'pickup' ? `${hm(st.arriveS)}–${hm(st.departS)}` : hm(st.arriveS);
-    const join = st.kind === 'merge' ? '' : `+${st.stop.riders}`;
+    const join = st.kind === 'merge' ? '' : `+${Math.round(st.ridersAfter - (i > 0 ? sp.stops[i - 1]!.ridersAfter : 0))}`;
     console.log(
       `  ${pad(time, 13)}${pad(st.stop.name + (st.stop.gather ? ' *' : ''), 20)}${rpad(join, 5)}` +
       `${rpad(st.kind === 'merge' ? '' : Math.round(st.ridersAfter), 8)}` +
@@ -74,6 +74,8 @@ for (const sp of plan.spokes) {
     );
   });
   for (const st of sp.stops) if (st.stop.gather) console.log(`  * riders gather at ${st.stop.gather.name} and ride over to join`);
+  if (sp.joins) console.log(`  → joins ${sp.joins.spokeName} at ${sp.joins.stopName} and rides on with it`);
+  for (const o of plan.spokes) if (o.joins?.spokeId === sp.id) console.log(`  ← ${o.name} joins at ${o.joins.stopName}`);
   console.log(
     `  → ${km(sp.distanceM)} in ${mins(sp.durationS)} · start ${hm(sp.startS)} · head at merge ${hm(sp.headArriveMergeS)}, ` +
     `tail ${hm(sp.tailArriveMergeS)} · peak ${Math.round(sp.peakRiders)} riders / ${Math.round(sp.peakLengthM)} m · ` +

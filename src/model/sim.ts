@@ -188,23 +188,35 @@ export function buildSim(plan: Plan): Sim {
       }
     };
 
+    // Riders from a joining spoke who have reached their join point wait there to board.
+    const states = spokes.map((r) => runAt(r, t));
+    const boarding = new Map<string, number>();
+    spokes.forEach((r, i) => {
+      const j = plan.spokes[i]!.joins;
+      if (!j) return;
+      const s = states[i];
+      const here = s ? s.atEnd * r.peakRiders : t >= r.endHeadS ? r.peakRiders : 0;
+      boarding.set(j.stopId, (boarding.get(j.stopId) ?? 0) + here);
+    });
+
     spokes.forEach((r, i) => {
       const sp = sc.spokes[i]!;
-      const s = runAt(r, t);
+      const s = states[i];
       const arrived = t >= r.endHeadS && !s;
+      const joins = plan.spokes[i]!.joins;
       // Start point.
       const atStart = s ? s.atStart * s.riders : arrived ? 0 : r.startRiders;
       if (atStart > 0.5) blobs.push({ id: `${r.id}:start`, lngLat: sp.start.lngLat, riders: atStart, kind: 'start' });
       // Pickups.
       sp.pickups.forEach((pk, k) => {
         const joined = s ? s.joined[k]! : arrived ? 1 : 0;
-        const waiting = Math.max(0, pk.riders) * (1 - joined);
+        const waiting = (Math.max(0, pk.riders) + (boarding.get(pk.id) ?? 0)) * (1 - joined);
         if (waiting > 0.5) blobs.push({ id: pk.id, lngLat: pk.gather?.lngLat ?? pk.lngLat, riders: waiting, kind: 'pickup' });
       });
-      if (s) {
-        pushColumn(r, s);
-        mergeRiders += s.atEnd * r.peakRiders;
-      } else if (arrived) mergeRiders += r.peakRiders;
+      if (s) pushColumn(r, s);
+      if (joins) return; // its riders are counted at the join point, then on the host's column
+      if (s) mergeRiders += s.atEnd * r.peakRiders;
+      else if (arrived) mergeRiders += r.peakRiders;
     });
 
     const ts = runAt(term, t);

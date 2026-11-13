@@ -55,6 +55,8 @@ export const DEFAULT_PARAMS: Params = {
   /** Mix used at any stop that doesn't set its own. Shares should sum to 1. */
   defaultAgeMix: { kids: 0.05, teens: 0.05, adults: 0.78, seniors: 0.12 },
   paceSetShare: 0.1,
+  /** A spoke joining another gets to the join point this many minutes first, so it's there when the other arrives. */
+  joinLeadMin: 2,
   /** Riders side by side, averaged (some rows hold 2, some 3). */
   ridersPerRow: 2.5,
   /** Front wheel to front wheel between rows. */
@@ -156,6 +158,14 @@ export const INTERSECTIONS = {
   avenueStClair: [-79.40149, 43.68664], // PX 0112
   avenueDupont: [-79.39763, 43.6772], // PX 0109
   avenueDavenport: [-79.3966, 43.67472], // PX 0108
+  // Yonge below St Clair, to Bloor (North joins East here)
+  yongeCrescentRd: [-79.38953, 43.67696], // PX 0043
+  yongeChurchDavenport: [-79.38787, 43.67287], // PX 0041
+  bloorYonge: [-79.38679, 43.67023], // PX 0040
+  // Queen's Park: the west crescent is the southbound side (east is northbound only).
+  qpcWNorth: [-79.39298, 43.66597], // PX 0227, Queen's Park at Queen's Park Cres W
+  qpcWHoskin: [-79.39353, 43.66393], // PX 2556, Queen's Park Cres W at Hoskin: the merge point
+  qpcWSouth: [-79.39181, 43.66092], // PX 2557, south end of the west crescent
   // Merge and final ride
   qpcEStJoseph: [-79.39189, 43.66592], // PX 0085, Queen's Park Cres E
   qpWellesley: [-79.39065, 43.66358], // PX 0084, Queen's Park Cres E
@@ -171,9 +181,9 @@ const I = INTERSECTIONS;
 export const DEFAULT_SCENARIO: Scenario = {
   name: 'Default: three spokes to City Hall',
   finalCorridor: 'University Avenue',
-  merge: { id: 'merge', name: "Queen's Park", lngLat: I.qpWellesley, riders: 200 }, // downtown riders join here
+  merge: { id: 'merge', name: "Queen's Park", lngLat: I.qpcWHoskin, riders: 200 }, // downtown riders join here
   destination: { id: 'dest', name: 'Nathan Phillips Square', lngLat: I.nps, riders: 0 },
-  terminalPath: [I.qpWellesley, I.qpcEGrosvenor, I.universityCollege, I.universityDundas, I.universityQueen, I.queenYork, I.nps],
+  terminalPath: [I.qpcWHoskin, I.qpcWSouth, I.universityCollege, I.universityDundas, I.universityQueen, I.queenYork, I.nps],
   spokes: [
     {
       id: 'west',
@@ -192,7 +202,7 @@ export const DEFAULT_SCENARIO: Scenario = {
       path: [
         I.tomRiley, I.bloorRoyalYork, I.bloorJane, I.bloorRunnymede, I.bloorHighPark,
         I.bloorKeele, I.bloorDundasW, I.bloorLansdowne, I.bloorDufferin, I.bloorOssington, I.bloorBathurst,
-        I.bloorSpadina, I.bloorStGeorge, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
+        I.bloorSpadina, I.bloorStGeorge, I.bloorAvenue, I.qpcWNorth, I.qpcWHoskin,
       ],
     },
     {
@@ -205,11 +215,13 @@ export const DEFAULT_SCENARIO: Scenario = {
       pickups: [
         { id: 'e2', name: 'East Lynn Park', lngLat: I.eastLynnPark, riders: 70 },
         { id: 'e3', name: 'Carlaw Parkette', lngLat: I.carlawParkette, riders: 85 },
+        // North rides down Yonge and joins here; no one else waits on this corner.
+        { id: 'e4', name: 'Bloor & Yonge', lngLat: I.bloorYonge, riders: 0 },
       ],
       path: [
         I.stephensonPark, I.danforthWoodbine, I.eastLynnPark,
         I.danforthCoxwell, I.danforthDonlands, I.danforthPape, I.carlawParkette, I.danforthChester, I.danforthBroadview,
-        I.bloorCastleFrank, I.bloorSherbourne, I.bloorBay, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
+        I.bloorCastleFrank, I.bloorSherbourne, I.bloorYonge, I.bloorBay, I.bloorAvenue, I.qpcWNorth, I.qpcWHoskin,
       ],
     },
     {
@@ -222,10 +234,12 @@ export const DEFAULT_SCENARIO: Scenario = {
       pickups: [
         { id: 'n2', name: 'Rosedale-Moore Park', lngLat: I.rosedaleMoorePark, riders: 65 },
       ],
-      // Leaves Yonge at St Clair so it doesn't share Bloor with the East spoke.
+      // Down Yonge to Bloor, where it joins East and they ride on together
+      // (Avenue Rd is a fast car thoroughfare).
+      joinsAt: 'e4',
       path: [
         I.eglintonPark, I.yongeEglinton, I.yongeDavisville, I.rosedaleMoorePark, I.yongeStClair,
-        I.avenueStClair, I.avenueDupont, I.avenueDavenport, I.bloorAvenue, I.qpcEStJoseph, I.qpWellesley,
+        I.yongeCrescentRd, I.yongeChurchDavenport, I.bloorYonge,
       ],
     },
   ],

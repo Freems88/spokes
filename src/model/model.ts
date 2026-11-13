@@ -116,6 +116,24 @@ export function formatClock(s: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+/** The pickup a spoke joins, when `joinsAt` names a pickup on another (non-joining) spoke. */
+export function joinTarget(sc: Scenario, spoke: Spoke): { host: Spoke; stop: Stop } | null {
+  if (!spoke.joinsAt) return null;
+  for (const host of sc.spokes) {
+    if (host.id === spoke.id || host.joinsAt) continue;
+    const stop = host.pickups.find((p) => p.id === spoke.joinsAt);
+    if (stop) return { host, stop };
+  }
+  return null;
+}
+
+/** Where a spoke's route ends: the pickup it joins, or the merge point. */
+export const spokeEnd = (sc: Scenario, spoke: Spoke): Stop => joinTarget(sc, spoke)?.stop ?? sc.merge;
+
+/** Everyone a spoke picks up along its own route. */
+export const spokeCrowd = (spoke: Spoke, p: Params): Crowd =>
+  [spoke.start, ...spoke.pickups].reduce((c, s) => addCrowds(c, stopCrowd(s, p)), emptyCrowd());
+
 /** Route used for a spoke: the cached path, or straight segments through its stops. */
 export function spokePath(spoke: Spoke, mergeAt: LngLat): LngLat[] {
   const line = spoke.path && spoke.path.length >= 2
@@ -141,8 +159,11 @@ function countSignals(fromM: number, toM: number, along: number[] | undefined, p
  * Lay out one spoke going forward from t = 0, then shift every time so the
  * head reaches the merge point at `arriveS`.
  */
-function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags: Flag[]): SpokePlan {
-  const path = spokePath(spoke, sc.merge.lngLat);
+function planSpoke(
+  spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags: Flag[],
+  joining: Map<string, Crowd> = new Map(), end: Stop = sc.merge,
+): SpokePlan {
+  const path = spokePath(spoke, end.lngLat);
   const total = lengthM(path);
   const regroupS = p.regroupMin * 60;
   const slack = 1 + Math.max(0, p.slackPct) / 100;
@@ -172,7 +193,7 @@ function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags
     placed.push({ stop, kind, alongM: pr.alongM, offRouteM: pr.offsetM });
     minAlong = pr.alongM;
   }
-  placed.push({ stop: sc.merge, kind: 'merge', alongM: total, offRouteM: 0 });
+  placed.push({ stop: end, kind: 'merge', alongM: total, offRouteM: 0 });
 
   // Walk forward.
   const stops: StopTiming[] = [];
@@ -183,7 +204,11 @@ function planSpoke(spoke: Spoke, sc: Scenario, p: Params, arriveS: number, flags
   for (let i = 0; i < placed.length; i++) {
     const cur = placed[i]!;
     const arrive = t;
-    if (cur.kind !== 'merge') crowd = addCrowds(crowd, stopCrowd(cur.stop, p));
+    if (cur.kind !== 'merge') {
+      crowd = addCrowds(crowd, stopCrowd(cur.stop, p));
+      const joiners = joining.get(cur.stop.id);
+      if (joiners) crowd = addCrowds(crowd, joiners);
+    }
     const depart = cur.kind === 'pickup' ? arrive + regroupS : arrive;
     const riders = crowdSize(crowd);
     const len = crowdLengthM(crowd, p);
@@ -262,7 +287,41 @@ export function computePlan(sc: Scenario, p: Params): Plan {
   const target = parseClock(p.targetMergeArrival);
   const th = p.thresholds;
 
-  const spokes = sc.spokes.map((s) => planSpoke(s, sc, p, target + s.arrivalOffsetMin * 60, flags));
+  // Spokes that join another at one of its pickups: their riders board there.
+  const joins = new Map<string, { host: Spoke; stop: Stop }>();
+  for (const s of sc.spokes) {
+    const jt = joinTarget(sc, s);
+    if (jt) joins.set(s.id, jt);
+    else if (s.joinsAt) {
+      flags.push({ level: 'info', scope: s.id, code: 'join', message: `${s.name}'s join point no longer exists, so it rides to ${sc.merge.name} on its own.` });
+    }
+  }
+  const joining = new Map<string, Crowd>();
+  for (const [id, jt] of joins) {
+    const s = sc.spokes.find((x) => x.id === id)!;
+    joining.set(jt.stop.id, addCrowds(joining.get(jt.stop.id) ?? emptyCrowd(), spokeCrowd(s, p)));
+  }
+  const planned = new Map<string, SpokePlan>();
+  for (const s of sc.spokes) {
+    if (!joins.has(s.id)) planned.set(s.id, planSpoke(s, sc, p, target + s.arrivalOffsetMin * 60, flags, joining));
+  }
+  // Joiners are timed to be at the join point a little before the host arrives.
+  for (const [id, jt] of joins) {
+    const s = sc.spokes.find((x) => x.id === id)!;
+    const host = planned.get(jt.host.id)!;
+    const hs = host.stops.find((x) => x.stop.id === jt.stop.id)!;
+    const sp = planSpoke(s, sc, p, hs.arriveS - p.joinLeadMin * 60, flags, new Map(), jt.stop);
+    sp.joins = { spokeId: host.id, spokeName: host.name, stopId: jt.stop.id, stopName: jt.stop.name };
+    if (sp.tailArriveMergeS > hs.departS) {
+      flags.push({
+        level: 'warn', scope: s.id, code: 'join',
+        message: `${s.name}'s last riders reach ${jt.stop.name} after ${host.name} leaves. Lengthen the stop there or have ${s.name} arrive earlier.`,
+      });
+    }
+    planned.set(id, sp);
+  }
+  const spokes = sc.spokes.map((s) => planned.get(s.id)!);
+  const toMerge = spokes.filter((s) => !s.joins);
 
   for (const sp of spokes) {
     const spoke = sc.spokes.find((s) => s.id === sp.id)!;
@@ -284,7 +343,7 @@ export function computePlan(sc: Scenario, p: Params): Plan {
     spokeFlags(sp, p, flags);
   }
 
-  const heads = spokes.map((s) => s.headArriveMergeS);
+  const heads = toMerge.map((s) => s.headArriveMergeS);
   const arrivalSpreadS = heads.length ? Math.max(...heads) - Math.min(...heads) : 0;
   if (arrivalSpreadS > th.maxArrivalSpreadMin * 60) {
     flags.push({
@@ -297,11 +356,11 @@ export function computePlan(sc: Scenario, p: Params): Plan {
   const tPath = terminalPath(sc);
   const tDist = lengthM(tPath);
   const joinCrowd = stopCrowd(sc.merge, p);
-  const crowd = spokes.reduce((c, s) => addCrowds(c, s.stops.at(-1)!.crowdAfter), joinCrowd);
+  const crowd = toMerge.reduce((c, s) => addCrowds(c, s.stops.at(-1)!.crowdAfter), joinCrowd);
   const riders = crowdSize(crowd);
   const pace = crowdPace(crowd, p);
   const v = pace.kmh / 3.6;
-  const lastTail = spokes.length ? Math.max(...spokes.map((s) => s.tailArriveMergeS)) : target;
+  const lastTail = toMerge.length ? Math.max(...toMerge.map((s) => s.tailArriveMergeS)) : target;
   const departS = lastTail + p.mergeHoldMin * 60;
   const len = crowdLengthM(crowd, p);
   const tSig = countSignals(0, tDist, sc.terminalSignalsAlongM, p);

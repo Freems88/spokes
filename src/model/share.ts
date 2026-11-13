@@ -31,7 +31,7 @@ function compactScenario(sc: Scenario): unknown {
     t: sc.terminalPath?.map(ll),
     fc: sc.finalCorridor,
     s: sc.spokes.map((s) => ({
-      id: s.id, n: s.name, ar: s.area, cr: s.corridor, o: s.arrivalOffsetMin,
+      id: s.id, n: s.name, ar: s.area, cr: s.corridor, j: s.joinsAt, o: s.arrivalOffsetMin,
       st: stop(s.start), p: s.pickups.map(stop), v: s.path?.map(ll),
     })),
   };
@@ -136,6 +136,7 @@ function readScenario(x: unknown, fallback: Scenario): Scenario {
       id: ids.take(s.id, 's'), name: str(s.n, `Spoke ${spokes.length + 1}`, 40),
       ...(area ? { area } : {}),
       ...(corridor ? { corridor } : {}),
+      ...(typeof s.j === 'string' && /^[A-Za-z0-9_-]{1,24}$/.test(s.j) ? { joinsAt: s.j } : {}),
       arrivalOffsetMin: Math.round(num(s.o, -120, 120, 0)),
       start, pickups, path: readPath(s.v),
     });
@@ -150,7 +151,7 @@ function readScenario(x: unknown, fallback: Scenario): Scenario {
 /** Allowed range for every numeric parameter, mirroring Params' shape. */
 const RANGES = {
   cruiseKmh: [5, 30], ridersPerRow: [1, 6], rowSpacingM: [1, 6], regroupMin: [0, 30], mergeHoldMin: [0, 60], slackPct: [0, 100], meetBeforeStartMin: [0, 60],
-  paceSetShare: [0, 1], signalsPerKmEstimate: [0, 10],
+  paceSetShare: [0, 1], joinLeadMin: [0, 30], signalsPerKmEstimate: [0, 10],
   marshals: { leadSweep: [0, 20], corkersPerIntersection: [1, 6], setupS: [0, 300], catchUpKmh: [8, 40] },
   thresholds: {
     maxColumnM: [20, 5000], maxBlockageS: [5, 1200], minStartRiders: [0, 1000],

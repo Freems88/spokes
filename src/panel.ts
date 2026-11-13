@@ -30,10 +30,10 @@ export function renderPanel(
         <div><dt>Longest hold</dt><dd>${r(s.maxBlockageS)} s</dd></div>
         <div><dt>Signals crossed</dt><dd>${s.signals}</dd></div>
         <div><dt>Marshals</dt><dd title="${s.marshals.corkers} corking + ${s.marshals.leadSweep} lead/sweep">${s.marshals.total}</dd></div>
-        <div><dt>At merge</dt><dd>${hm(s.headArriveMergeS)}</dd></div>
+        <div><dt>${s.joins ? `Joins ${esc(s.joins.spokeName)}` : 'At merge'}</dt><dd>${hm(s.headArriveMergeS)}</dd></div>
       </dl>
-      <p class="stops">${s.stops.slice(0, -1).map((st) =>
-        `${esc(st.stop.name)} ${st.kind === 'start' ? hm(st.departS) : hm(st.arriveS)} (+${r(st.stop.riders)})`).join(' → ')}</p>
+      <p class="stops">${s.stops.slice(0, -1).map((st, i) =>
+        `${esc(st.stop.name)} ${st.kind === 'start' ? hm(st.departS) : hm(st.arriveS)} (+${r(st.ridersAfter - (i > 0 ? s.stops[i - 1]!.ridersAfter : 0))})`).join(' → ')}</p>
     </article>`).join('');
 
   const finalCard = `
@@ -65,6 +65,7 @@ export function renderPanel(
     ['Space per rider (default age mix)', `${crowdMetresPerRider(mix, p).toFixed(2)} m`],
     ['Regroup at each pickup', `${p.regroupMin} min`],
     ['Hold at merge after last arrival', `${p.mergeHoldMin} min`],
+    ['A joining spoke arrives early by', `${p.joinLeadMin} min`],
     ['Schedule cushion on riding time', `${p.slackPct}%`],
     ['Meet before roll-out at starts', `${p.meetBeforeStartMin} min`],
     ['Marshals per group', `${p.marshals.leadSweep} lead/sweep + ${p.marshals.corkersPerIntersection} per held corner, leapfrogging`],

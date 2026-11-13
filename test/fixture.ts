@@ -17,6 +17,9 @@ const by = (id: string) => base.spokes.find((s) => s.id === id)!;
 
 export const S: Scenario = {
   ...base,
+  // The original merge point and final-ride path (east crescent), frozen here.
+  merge: { ...base.merge, lngLat: I.qpWellesley },
+  terminalPath: [I.qpWellesley, I.qpcEGrosvenor, I.universityCollege, I.universityDundas, I.universityQueen, I.queenYork, I.nps],
   spokes: [
     {
       ...by('west'), area: 'Etobicoke',
@@ -47,7 +50,7 @@ export const S: Scenario = {
       ],
     },
     {
-      ...by('north'), area: 'North York',
+      ...by('north'), area: 'North York', joinsAt: undefined,
       start: { id: 'n0', name: 'Yonge & Sheppard', lngLat: I.yongeSheppard, riders: 50 },
       pickups: [
         { id: 'n1', name: 'Eglinton', lngLat: I.yongeEglinton, riders: 60 },
